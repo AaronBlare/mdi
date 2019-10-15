@@ -28,34 +28,16 @@ def get_dist_mtx(subjects, row_dict, data):
 
 def pcoa_pipeline(config, subjects, data_type, time, target_keys):
 
-    metadata, obs_dict = config.get_target_subject_dicts(subjects, target_keys, time)
-
-    if data_type == 'otu_counts':
-        if time == 'T0':
-            row_dict = config.otu_counts.subject_row_dict_T0
-            data = config.otu_counts.normalized_T0
-        elif time == 'T1':
-            row_dict = config.otu_counts.subject_row_dict_T1
-            data = config.otu_counts.normalized_T1
-        else:
-            raise ValueError('Wrong time segment')
-    else:
-        if time in ['T0', 'T1']:
-            if data_type == 'nutrition':
-                row_dict = config.nutrition.subject_row_dicts[time]
-                data = config.nutrition.nutrition_data_dict[time]
-            elif data_type == 'food_groups':
-                row_dict = config.food_groups.subject_row_dicts[time]
-                data = config.food_groups.food_groups_data_dict[time]
-            else:
-                raise ValueError('Wrong data_type')
-        else:
-            raise ValueError('Wrong time segment')
+    config.separate_data(data_type, time)
+    row_dict = config.curr_raw_dict
+    data = config.curr_data
 
     distance_mtx = get_dist_mtx(subjects, row_dict, data)
 
     skbio_distance_mtx = DistanceMatrix(distance_mtx, subjects)
     ord_result = pcoa(skbio_distance_mtx)
+
+    metadata, obs_dict = config.get_target_subject_dicts(subjects, target_keys, time)
 
     metadata_df = pd.DataFrame.from_dict(metadata, orient='index')
 

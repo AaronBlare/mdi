@@ -1,5 +1,5 @@
 from config.config import Config
-from pcoa.pipeline import pcoa_pipeline
+from pca.pipeline import pca_pipeline
 
 path_in = 'E:/YandexDisk/Work/nuage'
 path_out = 'E:/YandexDisk/Work/nuage'
@@ -11,8 +11,8 @@ config = Config(path_in, path_out)
 
 common_subjects = config.get_common_subjects()
 
-config.path_out = path_out + '/pcoa/otu_counts'
-otu_res = pcoa_pipeline(
+config.path_out = path_out + '/pca/otu_counts'
+otu_res = pca_pipeline(
     config,
     common_subjects,
     'otu_counts',
@@ -20,8 +20,8 @@ otu_res = pcoa_pipeline(
     target_keys
 )
 
-config.path_out = path_out + '/pcoa/nutrition'
-nut_res = pcoa_pipeline(
+config.path_out = path_out + '/pca/nutrition'
+nut_res = pca_pipeline(
     config,
     common_subjects,
     'nutrition',
@@ -29,8 +29,8 @@ nut_res = pcoa_pipeline(
     target_keys
 )
 
-config.path_out = path_out + '/pcoa/food_groups'
-food_res = pcoa_pipeline(
+config.path_out = path_out + '/pca/food_groups'
+food_res = pca_pipeline(
     config,
     common_subjects,
     'food_groups',

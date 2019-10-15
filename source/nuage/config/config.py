@@ -69,3 +69,35 @@ class Config:
             metadata[code] = curr_dict
 
         return metadata, obs_dict
+
+    def separate_data(self, data_type, time):
+
+        if data_type == 'otu_counts':
+            if time == 'T0':
+                col_dict = self.otu_counts.otu_col_dict_T0
+                row_dict = self.otu_counts.subject_row_dict_T0
+                data = self.otu_counts.normalized_T0
+            elif time == 'T1':
+                col_dict = self.otu_counts.otu_col_dict_T1
+                row_dict = self.otu_counts.subject_row_dict_T1
+                data = self.otu_counts.normalized_T1
+            else:
+                raise ValueError('Wrong time segment')
+        else:
+            if time in ['T0', 'T1']:
+                if data_type == 'nutrition':
+                    col_dict = self.nutrition.nutrition_col_dict
+                    row_dict = self.nutrition.subject_row_dicts[time]
+                    data = self.nutrition.nutrition_data_dict[time]
+                elif data_type == 'food_groups':
+                    col_dict = self.food_groups.food_groups_col_dict
+                    row_dict = self.food_groups.subject_row_dicts[time]
+                    data = self.food_groups.food_groups_data_dict[time]
+                else:
+                    raise ValueError('Wrong data_type')
+            else:
+                raise ValueError('Wrong time segment')
+
+        self.curr_col_dict = col_dict
+        self.curr_raw_dict = row_dict
+        self.curr_data = data

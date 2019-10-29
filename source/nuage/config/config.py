@@ -2,6 +2,7 @@ from config.otu_counts import load_otu_counts
 from config.nutrition import load_nutrition
 from config.food_groups import load_food_groups
 from config.subjects import load_subject_info, T0_T1_subject_separation
+import numpy as np
 
 class Config:
 
@@ -101,3 +102,26 @@ class Config:
         self.curr_col_dict = col_dict
         self.curr_raw_dict = row_dict
         self.curr_data = data
+
+    def separate_common_otus(self):
+        num_rows_t0 = len(list(self.otu_counts.subject_row_dict_T0))
+        num_rows_t1 = len(list(self.otu_counts.subject_row_dict_T1))
+        num_cols = len(self.get_common_otus())
+
+        common_otu_t0 = np.zeros((num_rows_t0, num_cols), dtype=np.float32)
+        common_otu_t1 = np.zeros((num_rows_t1, num_cols), dtype=np.float32)
+
+        otu_id = 0
+        self.otu_col_dict = {}
+        for key in self.otu_counts.otu_col_dict_T0:
+            if key in self.otu_counts.otu_col_dict_T1:
+                self.otu_col_dict[key] = otu_id
+                common_otu_t0[:, otu_id] = self.otu_counts.normalized_T0[:, self.otu_counts.otu_col_dict_T0[key]]
+                common_otu_t1[:, otu_id] = self.otu_counts.normalized_T1[:, self.otu_counts.otu_col_dict_T1[key]]
+                otu_id += 1
+        return common_otu_t0, common_otu_t1
+
+    def get_common_otus(self):
+        common_otus = list(
+            set(self.otu_counts.otu_col_dict_T0.keys()).intersection(set(self.otu_counts.otu_col_dict_T1.keys())))
+        return common_otus

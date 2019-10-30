@@ -122,6 +122,8 @@ class Config:
         return common_otu_t0, common_otu_t1
 
     def get_common_otus(self):
-        common_otus = list(
-            set(self.otu_counts.otu_col_dict_T0.keys()).intersection(set(self.otu_counts.otu_col_dict_T1.keys())))
+        common_otus = []
+        for key in self.otu_counts.otu_col_dict_T0:
+            if key in self.otu_counts.otu_col_dict_T1:
+                common_otus.append(key)
         return common_otus

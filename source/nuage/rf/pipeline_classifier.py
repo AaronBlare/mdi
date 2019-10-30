@@ -21,10 +21,10 @@ def pipeline_classifier(config):
 
     status_key = 'status'
 
-    metadata_status_t0, obs_dict_status_t0 = config.get_target_subject_dicts(subject_row_dict_T0.keys(), [status_key],
-                                                                             'T0')
-    metadata_status_t1, obs_dict_status_t1 = config.get_target_subject_dicts(subject_row_dict_T1.keys(), [status_key],
-                                                                             'T1')
+    metadata_status_t0, obs_dict_status_t0 = config.get_target_subject_dicts(list(subject_row_dict_T0.keys()),
+                                                                             [status_key], 'T0')
+    metadata_status_t1, obs_dict_status_t1 = config.get_target_subject_dicts(list(subject_row_dict_T1.keys()),
+                                                                             [status_key], 'T1')
 
     print('Number of Subjects at T0: ' + str(len(obs_dict_status_t0[status_key]['Subject'])))
     print('Number of Controls at T0: ' + str(len(obs_dict_status_t0[status_key]['Control'])))
@@ -86,34 +86,20 @@ def pipeline_classifier(config):
     adherence_t1_percentiles_control = pd.qcut(adherence_dict[adherence_key_t1_control], t1_percentiles_control_val,
                                                labels=False)
 
-    low_adherence_subject = []
-    low_adherence_subject_diff = []
-    low_adherence_control = []
-    low_adherence_control_diff = []
     high_adherence_subject = []
     high_adherence_subject_diff = []
-    high_adherence_control = []
-    high_adherence_control_diff = []
 
     low_adherence_low_diff_control = []
 
     for index in range(0, len(subjects_common)):
-        if adherence_diff_percentiles_subject[index] == 0:
-            low_adherence_subject.append(subjects_common[index])
-            low_adherence_subject_diff.append(adherence_diff_list_subject[index])
-        elif adherence_diff_percentiles_subject[index] == diff_percentile_subject_val - 1:
+        if adherence_diff_percentiles_subject[index] == diff_percentile_subject_val - 1:
             high_adherence_subject.append(subjects_common[index])
             high_adherence_subject_diff.append(adherence_diff_list_subject[index])
 
     for index in range(0, len(controls_common)):
         if adherence_diff_percentiles_control[index] == 0:
-            low_adherence_control.append(controls_common[index])
-            low_adherence_control_diff.append(adherence_diff_list_control[index])
             if adherence_t0_percentiles_control[index] == 0 or adherence_t1_percentiles_control[index] == 0:
                 low_adherence_low_diff_control.append(controls_common[index])
-        elif adherence_diff_percentiles_control[index] == diff_percentiles_control_val - 1:
-            high_adherence_control.append(controls_common[index])
-            high_adherence_control_diff.append(adherence_diff_list_control[index])
 
     otu_t0_subject_df = configure_dataframe(otu_t0, obs_dict_status_t0[status_key]['Subject'],
                                             list(otu_t0_col_dict.keys()), subject_row_dict_T0)

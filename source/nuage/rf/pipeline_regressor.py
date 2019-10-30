@@ -99,9 +99,9 @@ def pipeline_regressor(config):
 
     name_list = []
     bact_list = []
-    fn_otus_info = config.path_in + '/' + 'Spingo_classified_TaxaTable.tsv'
+    fn_otus_info = config.path_in + '/Spingo_classified_TaxaTable.tsv'
     f = open(fn_otus_info)
-    header = f.readline()
+    f.readline()
     for line in f:
         line = line.split('\t')
         name = line[0]

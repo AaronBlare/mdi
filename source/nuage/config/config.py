@@ -112,10 +112,10 @@ class Config:
         common_otu_t1 = np.zeros((num_rows_t1, num_cols), dtype=np.float32)
 
         otu_id = 0
-        self.otu_col_dict = {}
+        self.common_otu_col_dict = {}
         for key in self.otu_counts.otu_col_dict_T0:
             if key in self.otu_counts.otu_col_dict_T1:
-                self.otu_col_dict[key] = otu_id
+                self.common_otu_col_dict[key] = otu_id
                 common_otu_t0[:, otu_id] = self.otu_counts.normalized_T0[:, self.otu_counts.otu_col_dict_T0[key]]
                 common_otu_t1[:, otu_id] = self.otu_counts.normalized_T1[:, self.otu_counts.otu_col_dict_T1[key]]
                 otu_id += 1

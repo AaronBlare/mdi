@@ -32,7 +32,7 @@ def pipeline_classifier(config):
     print('Number of Controls at T1: ' + str(len(obs_dict_status_t1[status_key]['Control'])))
 
     adherence_key = 'compliance160'
-    common_subjects = config.get_common_subjects()
+    common_subjects = config.get_common_subjects_with_adherence()
     metadata_ad_t0, obs_dict_ad_t0 = config.get_target_subject_dicts(common_subjects, [adherence_key], 'T0')
     metadata_ad_t1, obs_dict_ad_t1 = config.get_target_subject_dicts(common_subjects, [adherence_key], 'T1')
 
@@ -47,15 +47,10 @@ def pipeline_classifier(config):
 
     subjects_common = []
     controls_common = []
-    subjects_wo_adherence = []
     for code in common_subjects:
         curr_adherence_t0 = metadata_ad_t0[code][adherence_key]
         curr_adherence_t1 = metadata_ad_t1[code][adherence_key]
         curr_status = metadata_status_t0[code][status_key]
-
-        if curr_adherence_t0 == '' or curr_adherence_t1 == '':
-            subjects_wo_adherence.append(code)
-            continue
 
         if curr_status == 'Subject':
             subjects_common.append(code)
@@ -68,10 +63,6 @@ def pipeline_classifier(config):
             adherence_dict[adherence_key_t0_control].append(curr_adherence_t0)
             adherence_dict[adherence_key_t1_control].append(curr_adherence_t1)
             adherence_diff_list_control.append(abs(curr_adherence_t0 - curr_adherence_t1))
-
-    if len(subjects_wo_adherence) > 0:
-        for elem in subjects_wo_adherence:
-            common_subjects.remove(elem)
 
     diff_percentile_subject_val = 20
     diff_percentiles_control_val = 5

@@ -40,6 +40,29 @@ class Config:
 
         return common_subjects
 
+    def get_common_subjects_with_adherence(self):
+        common_subjects = self.get_common_subjects()
+
+        adherence_key = 'compliance160'
+        metadata_ad_t0, obs_dict_ad_t0 = self.get_target_subject_dicts(common_subjects, [adherence_key], 'T0')
+        metadata_ad_t1, obs_dict_ad_t1 = self.get_target_subject_dicts(common_subjects, [adherence_key], 'T1')
+
+        subjects_wo_adherence = []
+        for code in common_subjects:
+            curr_adherence_t0 = metadata_ad_t0[code][adherence_key]
+            curr_adherence_t1 = metadata_ad_t1[code][adherence_key]
+            if curr_adherence_t0 == '' or curr_adherence_t1 == '':
+                subjects_wo_adherence.append(code)
+                continue
+
+        if len(subjects_wo_adherence) > 0:
+            for elem in subjects_wo_adherence:
+                common_subjects.remove(elem)
+
+        print(f'\nNumber of common subjects with adherence: {len(common_subjects)}')
+
+        return common_subjects
+
     def get_target_subject_dicts(self, subjects, keys, time='T0'):
         metadata = {}
 

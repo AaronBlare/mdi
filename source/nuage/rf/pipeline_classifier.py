@@ -9,7 +9,7 @@ def pipeline_classifier(config):
     subject_row_dict_T1 = config.otu_counts.subject_row_dict_T1
 
     common_otus = config.get_common_otus()
-    common_otu_t0, common_otu_t1 = config.separate_common_otus()
+    common_otu_t0, common_otu_t1, common_otu_col_dict = config.separate_common_otus()
 
     config.separate_data('otu_counts', 'T0')
     otu_t0 = config.curr_data
@@ -18,6 +18,9 @@ def pipeline_classifier(config):
     config.separate_data('otu_counts', 'T1')
     otu_t1 = config.curr_data
     otu_t1_col_dict = config.curr_col_dict
+
+    common_subjects = config.get_common_subjects_with_adherence()
+    otu_counts_delta = config.get_otu_counts_delta()
 
     status_key = 'status'
 
@@ -32,7 +35,6 @@ def pipeline_classifier(config):
     print('Number of Controls at T1: ' + str(len(obs_dict_status_t1[status_key]['Control'])))
 
     adherence_key = 'compliance160'
-    common_subjects = config.get_common_subjects_with_adherence()
     metadata_ad_t0, obs_dict_ad_t0 = config.get_target_subject_dicts(common_subjects, [adherence_key], 'T0')
     metadata_ad_t1, obs_dict_ad_t1 = config.get_target_subject_dicts(common_subjects, [adherence_key], 'T1')
 
@@ -56,18 +58,18 @@ def pipeline_classifier(config):
             subjects_common.append(code)
             adherence_dict[adherence_key_t0_subject].append(curr_adherence_t0)
             adherence_dict[adherence_key_t1_subject].append(curr_adherence_t1)
-            adherence_diff_list_subject.append(abs(curr_adherence_t0 - curr_adherence_t1))
+            adherence_diff_list_subject.append(curr_adherence_t1 - curr_adherence_t0)
 
         if curr_status == 'Control':
             controls_common.append(code)
             adherence_dict[adherence_key_t0_control].append(curr_adherence_t0)
             adherence_dict[adherence_key_t1_control].append(curr_adherence_t1)
-            adherence_diff_list_control.append(abs(curr_adherence_t0 - curr_adherence_t1))
+            adherence_diff_list_control.append(curr_adherence_t1 - curr_adherence_t0)
 
-    diff_percentile_subject_val = 20
-    diff_percentiles_control_val = 5
-    t0_percentiles_control_val = 5
-    t1_percentiles_control_val = 5
+    diff_percentile_subject_val = 10
+    diff_percentiles_control_val = 3
+    t0_percentiles_control_val = 3
+    t1_percentiles_control_val = 3
 
     adherence_diff_percentiles_subject = pd.qcut(adherence_diff_list_subject, diff_percentile_subject_val, labels=False)
     adherence_diff_percentiles_control = pd.qcut(adherence_diff_list_control, diff_percentiles_control_val,
@@ -101,6 +103,14 @@ def pipeline_classifier(config):
     otu_t1_control_df = configure_dataframe(otu_t1, obs_dict_status_t1[status_key]['Control'],
                                             list(otu_t1_col_dict.keys()), subject_row_dict_T1)
 
+    otu_t0_df = configure_dataframe(common_otu_t0, common_subjects, common_otus, subject_row_dict_T0)
+    otu_t1_df = configure_dataframe(common_otu_t1, common_subjects, common_otus, subject_row_dict_T1)
+
+    otu_subject_df = configure_dataframe(otu_counts_delta.data, subjects_common,
+                                         common_otus, otu_counts_delta.subject_row_dict)
+    otu_control_df = configure_dataframe(otu_counts_delta.data, controls_common,
+                                         common_otus, otu_counts_delta.subject_row_dict)
+
     common_otu_t0_subject_df = configure_dataframe(common_otu_t0, obs_dict_status_t0[status_key]['Subject'],
                                                    common_otus, subject_row_dict_T0)
     common_otu_t0_control_df = configure_dataframe(common_otu_t0, obs_dict_status_t0[status_key]['Control'],
@@ -110,17 +120,29 @@ def pipeline_classifier(config):
     common_otu_t1_control_df = configure_dataframe(common_otu_t1, obs_dict_status_t1[status_key]['Control'],
                                                    common_otus, subject_row_dict_T1)
 
-    otu_high_adherence_diff_subject_df = configure_dataframe(common_otu_t1, high_adherence_subject,
-                                                             common_otus, subject_row_dict_T1)
-    otu_low_adherence_diff_control_df = configure_dataframe(common_otu_t1, low_adherence_low_diff_control,
-                                                            common_otus, subject_row_dict_T1)
+    otu_high_adherence_diff_subject_t1_df = configure_dataframe(common_otu_t1, high_adherence_subject,
+                                                                common_otus, subject_row_dict_T1)
+    otu_low_adherence_diff_control_t1_df = configure_dataframe(common_otu_t1, low_adherence_low_diff_control,
+                                                               common_otus, subject_row_dict_T1)
 
-    high_subj_low_control_df = otu_high_adherence_diff_subject_df.append(otu_low_adherence_diff_control_df)
+    otu_high_adherence_diff_subject_df = configure_dataframe(otu_counts_delta.data, high_adherence_subject,
+                                                             common_otus, otu_counts_delta.subject_row_dict)
+    otu_low_adherence_diff_control_df = configure_dataframe(otu_counts_delta.data, low_adherence_low_diff_control,
+                                                            common_otus, otu_counts_delta.subject_row_dict)
+
+    high_subj_low_control_t1_df = otu_high_adherence_diff_subject_t1_df.append(otu_low_adherence_diff_control_t1_df)
     classes_subj_control_t1 = ['Subject', ] * len(high_adherence_subject) + \
                               ['Control', ] * len(low_adherence_low_diff_control)
 
-    accuracy = run_classifier(high_subj_low_control_df, classes_subj_control_t1)
-    print('Accuracy High Adherence Diff Subject T1 vs Low Adherence Diff Control T1: ' + str(accuracy))
+    accuracy = run_classifier(high_subj_low_control_t1_df, classes_subj_control_t1)
+    print('Accuracy High Adherence Subject T1 vs Low Adherence Control T1: ' + str(accuracy))
+
+    high_subj_low_control_df = otu_high_adherence_diff_subject_df.append(otu_low_adherence_diff_control_df)
+    classes_subj_control = ['Subject', ] * len(high_adherence_subject) + \
+                           ['Control', ] * len(low_adherence_low_diff_control)
+
+    accuracy = run_classifier(high_subj_low_control_df, classes_subj_control)
+    print('Accuracy High Adherence Subject Diff vs Low Adherence Control Diff: ' + str(accuracy))
 
     subj_control_t1_df = otu_t1_subject_df.append(otu_t1_control_df)
     classes_subj_control_t1 = ['Subject', ] * len(obs_dict_status_t1[status_key]['Subject']) + \
@@ -146,6 +168,18 @@ def pipeline_classifier(config):
     accuracy = run_classifier(control_t0_t1_df, classes_control_t0_t1)
     print('Accuracy Control T0 vs Control T1: ' + str(accuracy))
 
+    t0_t1_df = otu_t0_df.append(otu_t1_df)
+    classes_t0_t1 = ['T0', ] * len(common_subjects) + \
+                    ['T1', ] * len(common_subjects)
+    accuracy = run_classifier(t0_t1_df, classes_t0_t1)
+    print('Accuracy T0 vs T1: ' + str(accuracy))
+
+    subject_control_df = otu_subject_df.append(otu_control_df)
+    classes_subject_control = ['Subject', ] * len(subjects_common) + \
+                              ['Control', ] * len(controls_common)
+    accuracy = run_classifier(subject_control_df, classes_subject_control)
+    print('Accuracy Subject vs Control: ' + str(accuracy))
+
 
 def configure_dataframe(data, sub_list, var_list, subject_row_dict):
     df_array = np.zeros((len(sub_list), len(var_list)), dtype=np.float32)
@@ -159,11 +193,10 @@ def configure_dataframe(data, sub_list, var_list, subject_row_dict):
 
 
 def run_classifier(data, classes):
-
     factor = pd.factorize(classes)
     y = factor[0]
     clf = RandomForestClassifier(n_estimators=500)
-    output = cross_validate(clf, data, y, cv=5, scoring='accuracy', return_estimator=True)
+    output = cross_validate(clf, data, y, cv=10, scoring='accuracy', return_estimator=True)
     accuracy = np.mean(output['test_score'])
 
     return accuracy

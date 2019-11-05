@@ -38,7 +38,7 @@ def pipeline_classifier(config):
 
     subjects_common, controls_common = separate_status(metadata_status_t0, common_subjects)
 
-    diff_percentile_val = 3
+    diff_percentile_val = 4
     adherence_diff_percentiles = pd.qcut(adherence_diff, diff_percentile_val, labels=False, retbins=True)
 
     high_adherence = []

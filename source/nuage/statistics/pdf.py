@@ -33,6 +33,7 @@ adherence_dict = {adherence_key_t0_subject: [], adherence_key_t0_control: [],
                   adherence_key_t1_subject: [], adherence_key_t1_control: []}
 adherence_diff_list_subject = []
 adherence_diff_list_control = []
+adherence_diff = []
 
 subjects_common = []
 controls_common = []
@@ -52,6 +53,11 @@ for code in common_subjects:
         adherence_dict[adherence_key_t0_control].append(curr_adherence_t0)
         adherence_dict[adherence_key_t1_control].append(curr_adherence_t1)
         adherence_diff_list_control.append(curr_adherence_t1 - curr_adherence_t0)
+
+    adherence_diff.append(curr_adherence_t1 - curr_adherence_t0)
+
+diff_percentile_val = 4
+adherence_diff_percentiles = pd.qcut(adherence_diff, diff_percentile_val, labels=False, retbins=True)
 
 hist_data_t0 = [adherence_dict[adherence_key_t0_subject], adherence_dict[adherence_key_t0_control]]
 group_labels_t0 = ['Subject', 'Control']
@@ -80,6 +86,12 @@ plotly.io.write_image(fig, figure_file_path + 'pdf_T0_T1.pdf')
 hist_data_adh = [adherence_diff_list_subject, adherence_diff_list_control]
 group_labels = ['Subject', 'Control']
 fig = ff.create_distplot(hist_data_adh, group_labels, show_hist=True, show_rug=False, curve_type='normal')
+fig.add_scatter(
+    x=[adherence_diff_percentiles[1][diff_percentile_val - 1], adherence_diff_percentiles[1][diff_percentile_val - 1]],
+    y=[0, 0.1], mode="lines",
+    marker=dict(color="Red"), line=dict(width=5), name='Last quartile')
+fig.add_scatter(x=[adherence_diff_percentiles[1][1], adherence_diff_percentiles[1][1]], y=[0, 0.1], mode="lines",
+                marker=dict(color="Green"), line=dict(width=5), name='First quartile')
 plotly.offline.plot(fig, filename=figure_file_path + 'pdf_adherence_diff.html', auto_open=False, show_link=True)
 plotly.io.write_image(fig, figure_file_path + 'pdf_adherence_diff.png')
 plotly.io.write_image(fig, figure_file_path + 'pdf_adherence_diff.pdf')

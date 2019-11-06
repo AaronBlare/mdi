@@ -2,6 +2,7 @@ import numpy as np
 from tqdm import tqdm
 from sklearn import preprocessing
 
+
 class OTUCounts:
 
     def __init__(self,
@@ -26,6 +27,17 @@ class OTUCounts:
         self.rarified_T1 = rarified_T1
         self.raw_T0 = raw_T0
         self.raw_T1 = raw_T1
+
+
+class OTUCountsDelta:
+
+    def __init__(self,
+                 otu_col_dict,
+                 subject_row_dict,
+                 data):
+        self.otu_col_dict = otu_col_dict
+        self.subject_row_dict = subject_row_dict
+        self.data = data
 
 
 def load_otu_counts(fn, norm='none'):
@@ -83,7 +95,7 @@ def load_otu_counts(fn, norm='none'):
         if len(otus) != num_otus:
             raise ValueError('Wrong number of otus in row')
 
-        if  type == 'NormalisedCount' and time == 'T0':
+        if type == 'NormalisedCount' and time == 'T0':
             normalized_T0[curr_row_id_T0] = otus
         elif type == 'RarifiedCount' and time == 'T0':
             rarified_T0[curr_row_id_T0] = otus
@@ -92,7 +104,7 @@ def load_otu_counts(fn, norm='none'):
             subject_row_dict_T0[subject] = curr_row_id_T0
             curr_row_id_T0 += 1
 
-        elif  type == 'NormalisedCount' and time == 'T1':
+        elif type == 'NormalisedCount' and time == 'T1':
             normalized_T1[curr_row_id_T1] = otus
         elif type == 'RarifiedCount' and time == 'T1':
             rarified_T1[curr_row_id_T1] = otus

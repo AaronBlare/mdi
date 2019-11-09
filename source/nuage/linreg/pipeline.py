@@ -3,16 +3,16 @@ import numpy as np
 import pandas as pd
 from scipy.stats import shapiro, kstest, normaltest
 from statsmodels.stats.stattools import jarque_bera, omni_normtest, durbin_watson
-from linreg.plot import plot_linreg
+
 
 def pipeline_linreg(config):
     common_subjects = config.get_common_subjects_with_adherence()
-    otu_counts_delta = config.get_otu_counts_delta()
+    otu_counts_delta = config.get_otu_counts_delta(common_subjects)
     adherence_diff, subject_row_adherence_dict = config.get_adherence_diff(common_subjects)
     metrics_dict = init_metrics_dict()
 
     x = []
-    for id, code in enumerate(otu_counts_delta.subject_row_dict):
+    for i, code in enumerate(otu_counts_delta.subject_row_dict):
         curr_adherence = adherence_diff[subject_row_adherence_dict[code]]
         x.append(curr_adherence)
 
@@ -20,45 +20,43 @@ def pipeline_linreg(config):
         metrics_dict['otu'].append(otu)
         y = [otu_counts_delta.data[i, col] for i in range(0, len(common_subjects))]
         process_linreg(x, y, metrics_dict)
-        plot_linreg(config, x, y, otu)
 
     save_table(config, 'OTU_diff_linreg', metrics_dict)
 
 
 def init_metrics_dict():
-    metrics_dict = {}
-
-    metrics_dict['otu'] = []
-    metrics_dict['R2'] = []
-    metrics_dict['R2_adj'] = []
-    metrics_dict['f_stat'] = []
-    metrics_dict['prob(f_stat)'] = []
-    metrics_dict['log_likelihood'] = []
-    metrics_dict['AIC'] = []
-    metrics_dict['BIC'] = []
-    metrics_dict['omnibus'] = []
-    metrics_dict['prob(omnibus)'] = []
-    metrics_dict['skew'] = []
-    metrics_dict['kurtosis'] = []
-    metrics_dict['durbin_watson'] = []
-    metrics_dict['jarque_bera'] = []
-    metrics_dict['prob(jarque_bera)'] = []
-    metrics_dict['cond_no'] = []
-    metrics_dict['normality_p_value_shapiro'] = []
-    metrics_dict['normality_p_value_ks_wo_params'] = []
-    metrics_dict['normality_p_value_ks_with_params'] = []
-    metrics_dict['normality_p_value_dagostino'] = []
-    metrics_dict['intercept'] = []
-    metrics_dict['slope'] = []
-    metrics_dict['intercept_std'] = []
-    metrics_dict['slope_std'] = []
-    metrics_dict['intercept_p_value'] = []
-    metrics_dict['slope_p_value'] = []
+    metrics_dict = {'otu': [],
+                    'R2': [],
+                    'R2_adj': [],
+                    'f_stat': [],
+                    'prob(f_stat)': [],
+                    'log_likelihood': [],
+                    'AIC': [],
+                    'BIC': [],
+                    'omnibus': [],
+                    'prob(omnibus)': [],
+                    'skew': [],
+                    'kurtosis': [],
+                    'durbin_watson': [],
+                    'jarque_bera': [],
+                    'prob(jarque_bera)': [],
+                    'cond_no': [],
+                    'normality_p_value_shapiro': [],
+                    'normality_p_value_ks_wo_params': [],
+                    'normality_p_value_ks_with_params': [],
+                    'normality_p_value_dagostino': [],
+                    'intercept': [],
+                    'slope': [],
+                    'intercept_std': [],
+                    'slope_std': [],
+                    'intercept_p_value': [],
+                    'slope_p_value': []
+                    }
 
     return metrics_dict
 
-def process_linreg(x, y, metrics_dict):
 
+def process_linreg(x, y, metrics_dict):
     x = sm.add_constant(x)
 
     results = sm.OLS(y, x).fit()
@@ -101,6 +99,7 @@ def process_linreg(x, y, metrics_dict):
     metrics_dict['slope_std'].append(results.bse[1])
     metrics_dict['intercept_p_value'].append(results.pvalues[0])
     metrics_dict['slope_p_value'].append(results.pvalues[1])
+
 
 def save_table(config, file_name, table_dict):
     path = config.path_out

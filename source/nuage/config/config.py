@@ -165,9 +165,7 @@ class Config:
             subject_row_dict[sub] = sub_id
         return adherence_diff, subject_row_dict
 
-    def get_otu_counts_delta(self):
-
-        common_subjects = self.get_common_subjects_with_adherence()
+    def get_otu_counts_delta(self, common_subjects):
 
         subject_row_dict_T0 = self.otu_counts.subject_row_dict_T0
         subject_row_dict_T1 = self.otu_counts.subject_row_dict_T1

@@ -34,7 +34,7 @@ def pipeline_classifier(config):
     print('Number of Subjects at T1: ' + str(len(obs_dict_status_t1[status_key]['Subject'])))
     print('Number of Controls at T1: ' + str(len(obs_dict_status_t1[status_key]['Control'])))
 
-    adherence_diff, subject_row_adherence_dict = get_adherence_diff(config, common_subjects)
+    adherence_diff, subject_row_adherence_dict = config.get_adherence_diff(common_subjects)
 
     subjects_common, controls_common = separate_status(metadata_status_t0, common_subjects)
 
@@ -147,21 +147,6 @@ def pipeline_classifier(config):
                               ['Control', ] * len(controls_common)
     accuracy = run_classifier(subject_control_df, classes_subject_control)
     print('Accuracy Subject vs Control: ' + str(accuracy))
-
-
-def get_adherence_diff(config, common_subjects):
-    adherence_key = 'compliance160'
-    metadata_ad_t0, obs_dict_ad_t0 = config.get_target_subject_dicts(common_subjects, [adherence_key], 'T0')
-    metadata_ad_t1, obs_dict_ad_t1 = config.get_target_subject_dicts(common_subjects, [adherence_key], 'T1')
-
-    adherence_diff = []
-    subject_row_dict = {}
-    for sub_id, sub in enumerate(common_subjects):
-        curr_adherence_t0 = metadata_ad_t0[sub][adherence_key]
-        curr_adherence_t1 = metadata_ad_t1[sub][adherence_key]
-        adherence_diff.append(curr_adherence_t1 - curr_adherence_t0)
-        subject_row_dict[sub] = sub_id
-    return adherence_diff, subject_row_dict
 
 
 def separate_status(metadata_status, common_subjects):

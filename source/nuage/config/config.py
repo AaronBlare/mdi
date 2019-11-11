@@ -151,9 +151,21 @@ class Config:
                 common_otus.append(key)
         return common_otus
 
-    def get_otu_counts_delta(self):
+    def get_adherence_diff(self, common_subjects):
+        adherence_key = 'compliance160'
+        metadata_ad_t0, obs_dict_ad_t0 = self.get_target_subject_dicts(common_subjects, [adherence_key], 'T0')
+        metadata_ad_t1, obs_dict_ad_t1 = self.get_target_subject_dicts(common_subjects, [adherence_key], 'T1')
 
-        common_subjects = self.get_common_subjects_with_adherence()
+        adherence_diff = []
+        subject_row_dict = {}
+        for sub_id, sub in enumerate(common_subjects):
+            curr_adherence_t0 = metadata_ad_t0[sub][adherence_key]
+            curr_adherence_t1 = metadata_ad_t1[sub][adherence_key]
+            adherence_diff.append(curr_adherence_t1 - curr_adherence_t0)
+            subject_row_dict[sub] = sub_id
+        return adherence_diff, subject_row_dict
+
+    def get_otu_counts_delta(self, common_subjects):
 
         subject_row_dict_T0 = self.otu_counts.subject_row_dict_T0
         subject_row_dict_T1 = self.otu_counts.subject_row_dict_T1

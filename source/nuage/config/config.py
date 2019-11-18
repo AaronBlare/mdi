@@ -28,14 +28,14 @@ class Config:
         nut_subj_row_dict_T0 =  self.nutrition.subject_row_dicts['T0']
         nut_subj_row_dict_T1 =  self.nutrition.subject_row_dicts['T1']
 
-        subject_row_dict_T0 =  self.otu_counts.subject_row_dict_T0
-        subject_row_dict_T1 =  self.otu_counts.subject_row_dict_T1
+        otu_counts_subj_row_dict_T0 =  self.otu_counts.subject_row_dict_T0
+        otu_counts_subj_row_dict_T1 =  self.otu_counts.subject_row_dict_T1
 
         common_subjects_food = set(food_subj_row_dict_T0.keys()).intersection(set(food_subj_row_dict_T1.keys()))
         common_subjects_nutrition = set(nut_subj_row_dict_T0.keys()).intersection(set(nut_subj_row_dict_T1.keys()))
-        common_subjects_otu = set(subject_row_dict_T0.keys()).intersection(set(subject_row_dict_T1.keys()))
+        common_subjects_otu_counts = set(otu_counts_subj_row_dict_T0.keys()).intersection(set(otu_counts_subj_row_dict_T1.keys()))
 
-        common_subjects = list(common_subjects_otu.intersection(common_subjects_nutrition).intersection(common_subjects_food))
+        common_subjects = list(common_subjects_otu_counts.intersection(common_subjects_nutrition).intersection(common_subjects_food))
         print(f'\nNumber of common subjects: {len(common_subjects)}')
 
         return common_subjects

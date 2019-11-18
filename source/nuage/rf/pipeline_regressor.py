@@ -13,32 +13,23 @@ def pipeline_regressor(config):
 
     common_otus = config.get_common_otus()
 
-    common_otu_t0, common_otu_t1 = config.separate_common_otus()
+    common_otu_t0, common_otu_t1, common_otu_col_dict = config.separate_common_otus()
 
     adherence_key = 'compliance160'
     adherence_key_t0 = 'adherence_t0'
     adherence_key_t1 = 'adherence_t1'
     adherence_dict = {adherence_key_t0: [], adherence_key_t1: []}
 
-    common_subjects = config.get_common_subjects()
+    common_subjects = config.get_common_subjects_with_adherence()
     metadata_t0, obs_dict_t0 = config.get_target_subject_dicts(common_subjects, [adherence_key], 'T0')
     metadata_t1, obs_dict_t1 = config.get_target_subject_dicts(common_subjects, [adherence_key], 'T1')
 
-    subjects_wo_adherence = []
     for code in common_subjects:
         curr_adherence_t0 = metadata_t0[code][adherence_key]
         curr_adherence_t1 = metadata_t1[code][adherence_key]
 
-        if curr_adherence_t0 == '' or curr_adherence_t1 == '':
-            subjects_wo_adherence.append(code)
-            continue
-
         adherence_dict[adherence_key_t0].append(curr_adherence_t0 * 100.0 / 160.0)
         adherence_dict[adherence_key_t1].append(curr_adherence_t1 * 100.0 / 160.0)
-
-    if len(subjects_wo_adherence) > 0:
-        for elem in subjects_wo_adherence:
-            common_subjects.remove(elem)
 
     otu_t0 = np.zeros((len(common_subjects), len(common_otus)), dtype=np.float32)
     otu_t1 = np.zeros((len(common_subjects), len(common_otus)), dtype=np.float32)

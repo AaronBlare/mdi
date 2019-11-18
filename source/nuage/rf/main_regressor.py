@@ -6,7 +6,7 @@ from config.file_system import get_path
 path = get_path()
 
 data_file_path = path
-result_file_path = path + '/rf_regressor/figures/'
+result_file_path = path + '/rf_regressor/'
 
 if not os.path.isdir(result_file_path):
     os.makedirs(result_file_path)

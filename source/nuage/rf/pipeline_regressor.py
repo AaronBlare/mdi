@@ -41,8 +41,8 @@ def pipeline_regressor(config):
         otu_t0[sub_id, :] = curr_otu_t0
         otu_t1[sub_id, :] = curr_otu_t1
 
-    otu_t0_df = pd.DataFrame(otu_t0, common_subjects, list(config.otu_col_dict.keys()))
-    otu_t1_df = pd.DataFrame(otu_t1, common_subjects, list(config.otu_col_dict.keys()))
+    otu_t0_df = pd.DataFrame(otu_t0, common_subjects, list(config.common_otu_col_dict.keys()))
+    otu_t1_df = pd.DataFrame(otu_t1, common_subjects, list(config.common_otu_col_dict.keys()))
 
     top_features_t0, top_features_imp_t0 = run_regressor(config, otu_t0_df, adherence_dict, adherence_key_t0, 'T0')
     top_features_t1, top_features_imp_t1 = run_regressor(config, otu_t1_df, adherence_dict, adherence_key_t1, 'T1')
@@ -200,10 +200,10 @@ def run_regressor(config, otu_df, adherence_dict, adherence_key, timeline):
     is_equal_range = True
     plot_random_forest(adherence_dict[adherence_key], output_pred, timeline, is_equal_range, config.path_out)
 
-    features_dict = dict((key, []) for key in list(config.otu_col_dict.keys()))
+    features_dict = dict((key, []) for key in list(config.common_otu_col_dict.keys()))
     for idx, estimator in enumerate(output['estimator']):
         feature_importances = pd.DataFrame(estimator.feature_importances_,
-                                           index=list(config.otu_col_dict.keys()),
+                                           index=list(config.common_otu_col_dict.keys()),
                                            columns=['importance']).sort_values('importance', ascending=False)
 
         features_names = list(feature_importances.index.values)
@@ -242,7 +242,7 @@ def run_regressor(config, otu_df, adherence_dict, adherence_key, timeline):
             top_features_imp.append(features_dict[key])
             num_features += 1
 
-    f = open(config.path_in + '/' + timeline + '_otus.txt', 'w')
+    f = open(config.path_out + '/' + timeline + '_otus.txt', 'w')
     f.write('MAE: ' + str(accuracy) + '\n')
     for item in top_features:
         f.write(item + '\n')

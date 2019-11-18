@@ -142,7 +142,9 @@ class Config:
                 common_otu_t0[:, otu_id] = self.otu_counts.normalized_T0[:, self.otu_counts.otu_col_dict_T0[key]]
                 common_otu_t1[:, otu_id] = self.otu_counts.normalized_T1[:, self.otu_counts.otu_col_dict_T1[key]]
                 otu_id += 1
+        self.common_otu_col_dict = common_otu_col_dict
         return common_otu_t0, common_otu_t1, common_otu_col_dict
+
 
     def get_common_otus(self):
         common_otus = []

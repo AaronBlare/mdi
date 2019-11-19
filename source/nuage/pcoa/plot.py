@@ -2,6 +2,8 @@ import plotly
 import colorlover as cl
 import plotly.graph_objs as go
 import os.path
+from routines.plot import get_axis, get_margin, get_legend
+
 
 def pcoa_plot(path, ord_result, common_subjects, metrics_key, metrics_dict):
 
@@ -10,7 +12,8 @@ def pcoa_plot(path, ord_result, common_subjects, metrics_key, metrics_dict):
     ys_all = coord_matrix[1]
     zs_all = coord_matrix[2]
 
-    traces = []
+    traces_3d = []
+    traces_2d = []
     for status in metrics_dict:
         curr_subjects = metrics_dict[status]
         xs = []
@@ -43,21 +46,56 @@ def pcoa_plot(path, ord_result, common_subjects, metrics_key, metrics_dict):
                 opacity=0.8
             )
         )
-        traces.append(trace)
+        traces_3d.append(trace)
 
-    layout = go.Layout(
-        margin=dict(
-            l=0,
-            r=0,
-            b=0,
-            t=0
+        trace = go.Scatter(
+            x=ys,
+            y=xs,
+            name=status,
+            mode='markers',
+            marker=dict(
+                size=8,
+                color=color_border,
+                line=dict(
+                    color=color_transparent,
+                    width=0.5
+                ),
+                opacity=0.8
+            )
         )
+        traces_2d.append(trace)
+
+    layout_3d = go.Layout(
+        margin=get_margin(),
+        autosize=True,
+        legend=get_legend()
     )
 
-    fig = go.Figure(data=traces, layout=layout)
+    layout_2d = go.Layout(
+        margin=get_margin(),
+        autosize=True,
+        legend=get_legend(),
+        xaxis=get_axis("PC1"),
+        yaxis=get_axis("PC2")
+    )
+
+    fig_3d = go.Figure(data=traces_3d, layout=layout_3d)
+    fig_3d.update_layout(scene=dict(
+        xaxis=get_axis("PC1"),
+        yaxis=get_axis("PC2"),
+        zaxis=get_axis("PC3")
+    ))
+    fig_2d = go.Figure(data=traces_2d, layout=layout_2d)
 
     if not os.path.exists(path):
         os.makedirs(path)
-    plotly.offline.plot(fig, filename= path + '/pcoa_' + metrics_key + '.html', auto_open=False, show_link=True)
-    plotly.io.write_image(fig, path + '/pcoa_' + metrics_key + '.png')
-    plotly.io.write_image(fig, path + '/pcoa_' + metrics_key + '.pdf')
+
+    plotly.offline.plot(fig_3d, filename= path + '/pcoa_3d_' + metrics_key + '.html', auto_open=False, show_link=True)
+    plotly.io.write_image(fig_3d, path + '/pcoa_3d_' + metrics_key + '.png')
+    plotly.io.write_image(fig_3d, path + '/pcoa_3d_' + metrics_key + '.pdf')
+
+    plotly.offline.plot(fig_2d, filename= path + '/pcoa_2d_' + metrics_key + '.html', auto_open=False, show_link=True)
+    plotly.io.write_image(fig_2d, path + '/pcoa_2d_' + metrics_key + '.png')
+    plotly.io.write_image(fig_2d, path + '/pcoa_2d_' + metrics_key + '.pdf')
+
+

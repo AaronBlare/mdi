@@ -123,7 +123,7 @@ class Config:
                 raise ValueError('Wrong time segment')
 
         self.curr_col_dict = col_dict
-        self.curr_raw_dict = row_dict
+        self.curr_row_dict = row_dict
         self.curr_data = data
 
     def separate_common_otus(self):

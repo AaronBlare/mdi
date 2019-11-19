@@ -1,17 +1,19 @@
 from config.config import Config
 from pcoa.pipeline import pcoa_pipeline
+from config.file_system import get_path
 
-path_in = 'E:/YandexDisk/Work/nuage'
-path_out = 'E:/YandexDisk/Work/nuage'
+path = get_path()
+
+data_file_path = path
+result_file_path = path
+config = Config(data_file_path, result_file_path)
 
 time = 'T0'
 target_keys = ['country', 'status']
 
-config = Config(path_in, path_out)
+common_subjects = config.get_common_subjects_with_adherence()
 
-common_subjects = config.get_common_subjects()
-
-config.path_out = path_out + '/pcoa/otu_counts'
+config.path_out = result_file_path + '/pcoa/otu_counts'
 otu_res = pcoa_pipeline(
     config,
     common_subjects,
@@ -20,7 +22,7 @@ otu_res = pcoa_pipeline(
     target_keys
 )
 
-config.path_out = path_out + '/pcoa/nutrition'
+config.path_out = result_file_path + '/pcoa/nutrition'
 nut_res = pcoa_pipeline(
     config,
     common_subjects,
@@ -29,7 +31,7 @@ nut_res = pcoa_pipeline(
     target_keys
 )
 
-config.path_out = path_out + '/pcoa/food_groups'
+config.path_out = result_file_path + '/pcoa/food_groups'
 food_res = pcoa_pipeline(
     config,
     common_subjects,

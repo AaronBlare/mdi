@@ -29,7 +29,7 @@ def get_dist_mtx(subjects, row_dict, data):
 def pcoa_pipeline(config, subjects, data_type, time, target_keys):
 
     config.separate_data(data_type, time)
-    row_dict = config.curr_raw_dict
+    row_dict = config.curr_row_dict
     data = config.curr_data
 
     distance_mtx = get_dist_mtx(subjects, row_dict, data)

@@ -5,7 +5,7 @@ import socket
 class DataPath(Enum):
     local_1 = 'D:/YandexDisk/Work/nuage'
     local_2 = 'E:/YandexDisk/Work/nuage'
-    local_3 = 'D:/Aaron/Bio/NU-Age'
+    local_3 = 'C:/Users/User/YandexDisk/nuage'
 
 def get_path():
     host_name = socket.gethostname()

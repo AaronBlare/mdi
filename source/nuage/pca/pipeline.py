@@ -10,7 +10,7 @@ def pca_pipeline(config, subjects, data_type, time, target_keys):
     config.separate_data(data_type, time)
 
     col_dict = config.curr_col_dict
-    row_dict = config.curr_raw_dict
+    row_dict = config.curr_row_dict
     raw_data = config.curr_data
 
     data = np.zeros(shape=(len(subjects), raw_data.shape[1]))

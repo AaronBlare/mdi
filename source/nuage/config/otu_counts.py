@@ -127,15 +127,15 @@ def load_otu_counts(fn, norm='none'):
 
     for key_id in range(0, len(keys)):
 
-        missed_part_T0 = float(normalized_T0_nz[key_id]) / float(number_of_T0)
-        if missed_part_T0 < 0.1:
+        presence_part_T0 = float(normalized_T0_nz[key_id]) / float(number_of_T0)
+        if presence_part_T0 < 0.1:
             cols_to_del_T0.append(key_id)
         else:
             otu_col_dict_T0[keys[key_id]] = curr_T0_id
             curr_T0_id += 1
 
-        missed_part_T1 = float(normalized_T1_nz[key_id]) / float(number_of_T1)
-        if missed_part_T1 < 0.1:
+        presence_part_T1 = float(normalized_T1_nz[key_id]) / float(number_of_T1)
+        if presence_part_T1 < 0.1:
             cols_to_del_T1.append(key_id)
         else:
             otu_col_dict_T1[keys[key_id]] = curr_T1_id

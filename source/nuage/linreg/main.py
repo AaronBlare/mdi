@@ -1,9 +1,12 @@
 import os
 from config.config import Config
 from linreg.pipeline import pipeline_linreg
+from config.file_system import get_path
 
-data_file_path = 'D:/Aaron/Bio/NU-Age/Data/'
-tables_file_path = 'D:/Aaron/Bio/NU-Age/Linreg/Table/'
+path = get_path()
+
+data_file_path = path
+tables_file_path = path + '/linreg/table/'
 
 if not os.path.isdir(tables_file_path):
     os.makedirs(tables_file_path)

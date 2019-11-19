@@ -13,32 +13,23 @@ def pipeline_regressor(config):
 
     common_otus = config.get_common_otus()
 
-    common_otu_t0, common_otu_t1 = config.separate_common_otus()
+    common_otu_t0, common_otu_t1, common_otu_col_dict = config.separate_common_otus()
 
     adherence_key = 'compliance160'
     adherence_key_t0 = 'adherence_t0'
     adherence_key_t1 = 'adherence_t1'
     adherence_dict = {adherence_key_t0: [], adherence_key_t1: []}
 
-    common_subjects = config.get_common_subjects()
+    common_subjects = config.get_common_subjects_with_adherence()
     metadata_t0, obs_dict_t0 = config.get_target_subject_dicts(common_subjects, [adherence_key], 'T0')
     metadata_t1, obs_dict_t1 = config.get_target_subject_dicts(common_subjects, [adherence_key], 'T1')
 
-    subjects_wo_adherence = []
     for code in common_subjects:
         curr_adherence_t0 = metadata_t0[code][adherence_key]
         curr_adherence_t1 = metadata_t1[code][adherence_key]
 
-        if curr_adherence_t0 == '' or curr_adherence_t1 == '':
-            subjects_wo_adherence.append(code)
-            continue
-
         adherence_dict[adherence_key_t0].append(curr_adherence_t0 * 100.0 / 160.0)
         adherence_dict[adherence_key_t1].append(curr_adherence_t1 * 100.0 / 160.0)
-
-    if len(subjects_wo_adherence) > 0:
-        for elem in subjects_wo_adherence:
-            common_subjects.remove(elem)
 
     otu_t0 = np.zeros((len(common_subjects), len(common_otus)), dtype=np.float32)
     otu_t1 = np.zeros((len(common_subjects), len(common_otus)), dtype=np.float32)
@@ -50,8 +41,8 @@ def pipeline_regressor(config):
         otu_t0[sub_id, :] = curr_otu_t0
         otu_t1[sub_id, :] = curr_otu_t1
 
-    otu_t0_df = pd.DataFrame(otu_t0, common_subjects, list(config.otu_col_dict.keys()))
-    otu_t1_df = pd.DataFrame(otu_t1, common_subjects, list(config.otu_col_dict.keys()))
+    otu_t0_df = pd.DataFrame(otu_t0, common_subjects, list(config.common_otu_col_dict.keys()))
+    otu_t1_df = pd.DataFrame(otu_t1, common_subjects, list(config.common_otu_col_dict.keys()))
 
     top_features_t0, top_features_imp_t0 = run_regressor(config, otu_t0_df, adherence_dict, adherence_key_t0, 'T0')
     top_features_t1, top_features_imp_t1 = run_regressor(config, otu_t1_df, adherence_dict, adherence_key_t1, 'T1')
@@ -209,10 +200,10 @@ def run_regressor(config, otu_df, adherence_dict, adherence_key, timeline):
     is_equal_range = True
     plot_random_forest(adherence_dict[adherence_key], output_pred, timeline, is_equal_range, config.path_out)
 
-    features_dict = dict((key, []) for key in list(config.otu_col_dict.keys()))
+    features_dict = dict((key, []) for key in list(config.common_otu_col_dict.keys()))
     for idx, estimator in enumerate(output['estimator']):
         feature_importances = pd.DataFrame(estimator.feature_importances_,
-                                           index=list(config.otu_col_dict.keys()),
+                                           index=list(config.common_otu_col_dict.keys()),
                                            columns=['importance']).sort_values('importance', ascending=False)
 
         features_names = list(feature_importances.index.values)
@@ -251,7 +242,7 @@ def run_regressor(config, otu_df, adherence_dict, adherence_key, timeline):
             top_features_imp.append(features_dict[key])
             num_features += 1
 
-    f = open(config.path_in + '/' + timeline + '_otus.txt', 'w')
+    f = open(config.path_out + '/' + timeline + '_otus.txt', 'w')
     f.write('MAE: ' + str(accuracy) + '\n')
     for item in top_features:
         f.write(item + '\n')

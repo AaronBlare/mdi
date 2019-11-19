@@ -1,8 +1,11 @@
 from config.config import Config
 from pca.pipeline import pca_pipeline
+from config.file_system import get_path
 
-path_in = 'E:/YandexDisk/Work/nuage'
-path_out = 'E:/YandexDisk/Work/nuage'
+path = get_path()
+
+path_in = path
+path_out = path
 
 time = 'T0'
 target_keys = ['country', 'status']

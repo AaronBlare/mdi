@@ -217,7 +217,7 @@ def run_regressor(config, otu_df, adherence_dict, adherence_key, timeline):
 
     accuracy_list = []
     num_features_list = []
-    for experiment_id in range(1, 101):
+    for experiment_id in range(1, 1):
         if experiment_id % 10 == 0:
             print(timeline + ' experiment #', str(experiment_id))
         features_list_len = 5 * experiment_id

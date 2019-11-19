@@ -1,6 +1,6 @@
 import os
 from config.config import Config
-from spearman.pipeline import pipeline_spearman
+from spearman.pipeline import pipeline_diff_spearman, pipeline_T0_T1_spearman
 from config.file_system import get_path
 
 path = get_path()
@@ -13,4 +13,6 @@ if not os.path.isdir(tables_file_path):
 
 config = Config(data_file_path, tables_file_path)
 
-pipeline_spearman(config)
+pipeline_diff_spearman(config)
+
+pipeline_T0_T1_spearman(config)

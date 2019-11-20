@@ -1,7 +1,7 @@
 import os
 from config.config import Config
 from linreg.pipeline import pipeline_diff_linreg, pipeline_T0_T1_linreg
-from config.file_system import get_path
+from infrastructure.file_system import get_path
 
 path = get_path()
 

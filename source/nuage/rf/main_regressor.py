@@ -1,7 +1,7 @@
 import os
 from config.config import Config
 from rf.pipeline_regressor import pipeline_regressor
-from config.file_system import get_path
+from infrastructure.file_system import get_path
 
 path = get_path()
 

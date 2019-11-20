@@ -1,6 +1,6 @@
 from config.config import Config
 from pcoa.pipeline import pcoa_pipeline
-from config.file_system import get_path
+from infrastructure.file_system import get_path
 
 path = get_path()
 

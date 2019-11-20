@@ -1,6 +1,6 @@
 from config.config import Config
 from pca.pipeline import pca_pipeline
-from config.file_system import get_path
+from infrastructure.file_system import get_path
 
 path = get_path()
 

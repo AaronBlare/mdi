@@ -1,4 +1,10 @@
 import plotly.graph_objs as go
+import plotly.figure_factory as ff
+import plotly.express as px
+import plotly
+import pandas as pd
+import numpy as np
+from infrastructure.load.table import load_table_dict_xlsx
 
 
 def get_axis(title):
@@ -42,3 +48,15 @@ def get_legend():
         )
     )
     return legend
+
+
+def plot_table_pdf(path_in, path_out, fn, header):
+    fn_load = path_in + fn + '.xlsx'
+    table_dict = load_table_dict_xlsx(fn_load)
+    hist_data = [table_dict[header]]
+    group_labels = [header]
+    fig = ff.create_distplot(hist_data, group_labels, show_hist=True, show_rug=False,  curve_type='normal')
+    fn_save = path_out + fn + '_' + header + '_pdf'
+    plotly.io.write_image(fig, fn_save + '.png')
+    plotly.io.write_image(fig, fn_save + '.pdf')
+    plotly.offline.plot(fig, fn_save + '.html', auto_open=False, show_link=True)

@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import cross_validate, cross_val_predict
 from scipy.stats import spearmanr
+from statsmodels.stats.multitest import multipletests
 
 
 def pipeline_regressor(config):
@@ -48,6 +49,11 @@ def pipeline_regressor(config):
     top_features_t1, top_features_imp_t1 = run_regressor(config, otu_t1_df, adherence_dict, adherence_key_t1, 'T1')
 
     top_features_merged = list(set(top_features_t0 + top_features_t1))
+    f = open(config.path_out + '/top_OTUs_list.txt', 'w')
+    for item in top_features_merged:
+        f.write(item + '\n')
+    f.close()
+
     top_features_intersection_imp = []
     for feature_id in range(0, len(top_features_merged)):
         name = top_features_merged[feature_id]
@@ -65,11 +71,9 @@ def pipeline_regressor(config):
         else:
             top_features_intersection_imp.append(np.mean(curr_imp))
 
-    top_features_paper = []
-    otu_file = config.path_in + '/' + 'otu_random_forest.txt'
+    otu_file = config.path_in + '/original/' + 'random_forest.txt'
     f = open(otu_file)
-    for line in f:
-        top_features_paper.append(line.replace(' \n', ''))
+    top_features_paper = f.read().splitlines()
     f.close()
 
     top_features_common_with_paper = list(set(top_features_merged).intersection(set(top_features_paper)))
@@ -80,10 +84,26 @@ def pipeline_regressor(config):
     new_df = new_df_t0.append(new_df_t1)
     new_adherence = adherence_dict[adherence_key_t0] + adherence_dict[adherence_key_t1]
 
+    metrics_dict = {'otu': [], 'rho': [], 'p_value': [], 'p_value_fdr': []}
     corr_coeffs = []
+
     for i in range(0, len(top_features_merged)):
         corr_coeff, p_val = spearmanr(list(new_df.iloc[:, i]), new_adherence)
+        metrics_dict['otu'].append(top_features_merged[i])
+        metrics_dict['rho'].append(corr_coeff)
+        metrics_dict['p_value'].append(p_val)
         corr_coeffs.append(corr_coeff)
+
+    reject, pvals_corr, alphacSidak, alphacBonf = multipletests(metrics_dict['p_value'], 0.05, method='fdr_bh')
+    metrics_dict['p_value_fdr'] = pvals_corr
+
+    path = config.path_out
+    fn_xlsx = path + 'top_OTU_spearman.xlsx'
+    df = pd.DataFrame(metrics_dict)
+    writer = pd.ExcelWriter(fn_xlsx, engine='xlsxwriter')
+    writer.book.use_zip64()
+    df.to_excel(writer, index=False)
+    writer.save()
 
     data, names = map(list, zip(*sorted(zip(corr_coeffs, top_features_merged), reverse=False)))
     plot_heatmap(data, list(range(1, len(top_features_merged))), config.path_out)
@@ -101,48 +121,84 @@ def pipeline_regressor(config):
         bact_list.append(bact)
     f.close()
 
+    top_features_merged_bact = []
     for name_id in range(0, len(top_features_merged)):
         name = top_features_merged[name_id]
         index = name_list.index(name)
-        top_features_merged[name_id] = name + '_' + bact_list[index]
+        top_features_merged_bact.append(name + '_' + bact_list[index])
 
     diet_positive_names = []
+    diet_positive_names_bact = []
     diet_positive_imp = []
     diet_negative_names = []
+    diet_negative_names_bact = []
     diet_negative_imp = []
 
-    for coeff_id in range(0, len(corr_coeffs)):
-        curr_coeff = corr_coeffs[coeff_id]
-        if curr_coeff > 0.0:
-            diet_positive_names.append(top_features_merged[coeff_id])
-            diet_positive_imp.append(top_features_intersection_imp[coeff_id])
-        elif curr_coeff < 0.0:
-            diet_negative_names.append(top_features_merged[coeff_id])
-            diet_negative_imp.append(top_features_intersection_imp[coeff_id])
+    for otu_id in range(0, len(metrics_dict['otu'])):
+        otu_name = metrics_dict['otu'][otu_id]
 
-    diet_positive_imp, diet_positive_names = map(list,
-                                                 zip(*sorted(zip(diet_positive_imp, diet_positive_names),
+        if metrics_dict['p_value_fdr'][otu_id] < 0.05 and metrics_dict['rho'][otu_id] > 0.0:
+            diet_positive_names.append(otu_name)
+            diet_positive_names_bact.append(top_features_merged_bact[top_features_merged.index(otu_name)])
+            diet_positive_imp.append(top_features_intersection_imp[top_features_merged.index(otu_name)])
+
+        elif metrics_dict['p_value_fdr'][otu_id] < 0.05 and metrics_dict['rho'][otu_id] < 0.0:
+            diet_negative_names.append(otu_name)
+            diet_negative_names_bact.append(top_features_merged_bact[top_features_merged.index(otu_name)])
+            diet_negative_imp.append(top_features_intersection_imp[top_features_merged.index(otu_name)])
+
+    f = open(config.path_out + '/diet_positive.txt', 'w')
+    for item in diet_positive_names:
+        f.write(item + '\n')
+    f.close()
+
+    f = open(config.path_out + '/diet_negative.txt', 'w')
+    for item in diet_negative_names:
+        f.write(item + '\n')
+    f.close()
+
+    diet_positive_imp, diet_positive_names_bact = map(list,
+                                                 zip(*sorted(zip(diet_positive_imp, diet_positive_names_bact),
                                                              reverse=False)))
-    colors_positive = ['lightslategray', ] * len(diet_positive_names)
-    for name_id in range(0, len(diet_positive_names)):
-        otu_name_list = diet_positive_names[name_id].split('_')
+
+    f = open(config.path_in + '/original/' + 'diet_positive.txt')
+    diet_positive_article = f.read().splitlines()
+    f.close()
+
+    positive_features_common_with_paper = list(set(diet_positive_names).intersection(set(diet_positive_article)))
+    print('Number of common positive OTUs: ', str(len(positive_features_common_with_paper)))
+
+    f = open(config.path_in + '/original/' + 'diet_negative.txt')
+    diet_negative_article = f.read().splitlines()
+    f.close()
+
+    negative_features_common_with_paper = list(set(diet_negative_names).intersection(set(diet_negative_article)))
+    print('Number of common negative OTUs: ', str(len(negative_features_common_with_paper)))
+
+    colors_positive = ['lightslategray', ] * len(diet_positive_names_bact)
+    for name_id in range(0, len(diet_positive_names_bact)):
+        otu_name_list = diet_positive_names_bact[name_id].split('_')
         otu_name = otu_name_list[0] + '_' + otu_name_list[1]
-        if otu_name in top_features_common_with_paper:
+        if otu_name in diet_positive_article:
             colors_positive[name_id] = 'crimson'
+        if otu_name in diet_negative_article:
+            print(otu_name + ' is positive, but in article - negative')
 
-    diet_negative_imp, diet_negative_names = map(list,
-                                                 zip(*sorted(zip(diet_negative_imp, diet_negative_names),
+    diet_negative_imp, diet_negative_names_bact = map(list,
+                                                 zip(*sorted(zip(diet_negative_imp, diet_negative_names_bact),
                                                              reverse=False)))
-    colors_negative = ['lightslategray', ] * len(diet_negative_names)
+    colors_negative = ['lightslategray', ] * len(diet_negative_names_bact)
 
-    for name_id in range(0, len(diet_negative_names)):
-        otu_name_list = diet_negative_names[name_id].split('_')
+    for name_id in range(0, len(diet_negative_names_bact)):
+        otu_name_list = diet_negative_names_bact[name_id].split('_')
         otu_name = otu_name_list[0] + '_' + otu_name_list[1]
-        if otu_name in top_features_common_with_paper:
+        if otu_name in diet_negative_article:
             colors_negative[name_id] = 'crimson'
+        if otu_name in diet_positive_names:
+            print(otu_name + ' is negative, but in article - positive')
 
-    plot_hist(diet_positive_imp, diet_positive_names, colors_positive, 'positive', config.path_out)
-    plot_hist(diet_negative_imp, diet_negative_names, colors_negative, 'negative', config.path_out)
+    plot_hist(diet_positive_imp, diet_positive_names_bact, colors_positive, 'positive', config.path_out)
+    plot_hist(diet_negative_imp, diet_negative_names_bact, colors_negative, 'negative', config.path_out)
 
     diet_positive_otus_subject = []
     diet_positive_otus_control = []

@@ -6,10 +6,13 @@ from routines.plot import get_axis, get_margin
 from infrastructure.file_system import get_path
 import os
 import numpy as np
+from scipy import stats
 
 
 num_segments = 6
 num_windows = 5
+
+box_points = 'outliers'
 
 path = get_path()
 
@@ -94,6 +97,14 @@ traces_entire_dp = []
 traces_t0_dn = []
 traces_t1_dn = []
 traces_entire_dn = []
+
+ys_t0_dp = []
+ys_t1_dp = []
+ys_entire_dp = []
+ys_t0_dn = []
+ys_t1_dn = []
+ys_entire_dn = []
+
 for w_id in range(0, num_windows):
 
     windows_t0_ids = np.array([subject_row_dict_T0[x] for x in windows_t0[w_id]])
@@ -107,30 +118,33 @@ for w_id in range(0, num_windows):
     line_color = 'rgba(' + ','.join(coordinates) + ',' + str(1.0) + ')'
 
     ys_t0 = np.sum(common_otu_t0[np.ix_(windows_t0_ids, otus_dp_cols)], axis=1)
+    ys_t0_dp.append(ys_t0)
     trace = go.Box(
         y=ys_t0,
         name="W" + str(w_id + 1),
-        boxpoints='outliers',
+        boxpoints=box_points,
         marker_color=marker_color,
         line_color=line_color
     )
     traces_t0_dp.append(trace)
 
     ys_t1 = np.sum(common_otu_t1[np.ix_(windows_t1_ids, otus_dp_cols)], axis=1)
+    ys_t1_dp.append(ys_t1)
     trace = go.Box(
         y=ys_t1,
         name="W" + str(w_id + 1),
-        boxpoints='outliers',
+        boxpoints=box_points,
         marker_color=marker_color,
         line_color=line_color
     )
     traces_t1_dp.append(trace)
 
     ys_entire = np.sum(common_otu_entire[np.ix_(windows_entire_ids, otus_dp_cols)], axis=1)
+    ys_entire_dp.append(ys_entire)
     trace = go.Box(
         y=ys_entire,
         name="W" + str(w_id + 1),
-        boxpoints='outliers',
+        boxpoints=box_points,
         marker_color=marker_color,
         line_color=line_color
     )
@@ -142,30 +156,33 @@ for w_id in range(0, num_windows):
     line_color = 'rgba(' + ','.join(coordinates) + ',' + str(1.0) + ')'
 
     ys_t0 = np.sum(common_otu_t0[np.ix_(windows_t0_ids, otus_dn_cols)], axis=1)
+    ys_t0_dn.append(ys_t0)
     trace = go.Box(
         y=ys_t0,
         name="W" + str(w_id + 1),
-        boxpoints='outliers',
+        boxpoints=box_points,
         marker_color=marker_color,
         line_color=line_color
     )
     traces_t0_dn.append(trace)
 
     ys_t1 = np.sum(common_otu_t1[np.ix_(windows_t1_ids, otus_dn_cols)], axis=1)
+    ys_t1_dn.append(ys_t1)
     trace = go.Box(
         y=ys_t1,
         name="W" + str(w_id + 1),
-        boxpoints='outliers',
+        boxpoints=box_points,
         marker_color=marker_color,
         line_color=line_color
     )
     traces_t1_dn.append(trace)
 
     ys_entire = np.sum(common_otu_entire[np.ix_(windows_entire_ids, otus_dn_cols)], axis=1)
+    ys_entire_dn.append(ys_entire)
     trace = go.Box(
         y=ys_entire,
         name="W" + str(w_id + 1),
-        boxpoints='outliers',
+        boxpoints=box_points,
         marker_color=marker_color,
         line_color=line_color
     )
@@ -208,3 +225,22 @@ fig = go.Figure(data=traces_entire_dn, layout=layout)
 plotly.offline.plot(fig, filename=out_path + '/cumulated_abundance_entire_diet_negative_box_plot.html', auto_open=False, show_link=True)
 plotly.io.write_image(fig, out_path + '/cumulated_abundance_entire_diet_negative_box_plot.png')
 plotly.io.write_image(fig, out_path + '/cumulated_abundance_entire_diet_negative_box_plot.pdf')
+
+kruskal_t0_dp = stats.kruskal(ys_t0_dp[0], ys_t0_dp[1], ys_t0_dp[2], ys_t0_dp[3], ys_t0_dp[4])
+print(f'kruskal_t0_dp p-value = {kruskal_t0_dp.pvalue : .2e}')
+
+kruskal_t1_dp = stats.kruskal(ys_t1_dp[0], ys_t1_dp[1], ys_t1_dp[2], ys_t1_dp[3], ys_t1_dp[4])
+print(f'kruskal_t1_dp p-value = {kruskal_t1_dp.pvalue : .2e}')
+
+kruskal_entire_dp = stats.kruskal(ys_entire_dp[0], ys_entire_dp[1], ys_entire_dp[2], ys_entire_dp[3], ys_entire_dp[4])
+print(f'kruskal_entire_dp p-value = {kruskal_entire_dp.pvalue : .2e}')
+
+
+kruskal_t0_dn = stats.kruskal(ys_t0_dn[0], ys_t0_dn[1], ys_t0_dn[2], ys_t0_dn[3], ys_t0_dn[4])
+print(f'kruskal_t0_dn p-value = {kruskal_t0_dn.pvalue : .2e}')
+
+kruskal_t1_dn = stats.kruskal(ys_t1_dn[0], ys_t1_dn[1], ys_t1_dn[2], ys_t1_dn[3], ys_t1_dn[4])
+print(f'kruskal_t1_dn p-value = {kruskal_t1_dn.pvalue : .2e}')
+
+kruskal_entire_dn = stats.kruskal(ys_entire_dn[0], ys_entire_dn[1], ys_entire_dn[2], ys_entire_dn[3], ys_entire_dn[4])
+print(f'kruskal_entire_dn p-value = {kruskal_entire_dn.pvalue : .2e}')

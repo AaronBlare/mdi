@@ -17,7 +17,7 @@ box_points = 'outliers'
 path = get_path()
 
 in_path = path
-out_path = path + '/statistics/cumulated_abundance'
+out_path = path + '/statistics/cumulated_abundance/supp_fig_8'
 if not os.path.isdir(out_path):
     os.makedirs(out_path)
 
@@ -84,12 +84,12 @@ common_otu_entire = np.concatenate((common_otu_t0, common_otu_t1), axis=0)
 f = open(path + '/rf_regressor/diet_positive.txt')
 otus_dp = f.read().splitlines()
 f.close()
-otus_dp_cols = np.array([common_otu_col_dict[x] for x in otus_dp])
+otus_dp_cols = np.array([common_otu_col_dict[x] for x in otus_dp if x in common_otu_col_dict])
 
 f = open(path + '/rf_regressor/diet_negative.txt')
 otus_dn = f.read().splitlines()
 f.close()
-otus_dn_cols = np.array([common_otu_col_dict[x] for x in otus_dn])
+otus_dn_cols = np.array([common_otu_col_dict[x] for x in otus_dn if x in common_otu_col_dict])
 
 traces_t0_dp = []
 traces_t1_dp = []

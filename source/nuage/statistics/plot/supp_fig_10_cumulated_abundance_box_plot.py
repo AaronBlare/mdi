@@ -10,6 +10,8 @@ from scipy import stats
 
 box_points = 'outliers'
 
+dr_otus_source = 'original'
+
 path = get_path()
 
 in_path = path
@@ -83,14 +85,12 @@ plotly.offline.plot(fig, filename=out_path + '/frailty_status_box_plot.html', au
 plotly.io.write_image(fig, out_path + '/frailty_status_box_plot.png')
 plotly.io.write_image(fig, out_path + '/frailty_status_box_plot.pdf')
 
-#f = open(path + '/rf_regressor/diet_positive.txt')
-f = open(path + '/original/diet_positive.txt')
+f = open(path + '/' + dr_otus_source + '/diet_positive.txt')
 otus_dp = f.read().splitlines()
 f.close()
 otus_dp_cols = np.array([common_otu_col_dict[x] for x in otus_dp if x in common_otu_col_dict])
 
-#f = open(path + '/rf_regressor/diet_negative.txt')
-f = open(path + '/original/diet_negative.txt')
+f = open(path + '/' + dr_otus_source + '/diet_negative.txt')
 otus_dn = f.read().splitlines()
 f.close()
 otus_dn_cols = np.array([common_otu_col_dict[x] for x in otus_dn if x in common_otu_col_dict])

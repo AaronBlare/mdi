@@ -40,7 +40,7 @@ def run_iterative_regressor(otu_df, adherence, otu_list, suffix):
         clf = RandomForestRegressor(n_estimators=500)
         output_pred = cross_val_predict(clf, new_df, adherence, cv=2)
         mse_list.append(mean_squared_error(adherence, output_pred))
-        corr_list.append(spearmanr(adherence, output_pred))
+        corr_list.append(spearmanr(adherence, output_pred)[0])
     return mse_list, corr_list
 
 
@@ -145,9 +145,9 @@ layout = go.Layout(
 )
 
 fig = go.Figure(data=traces, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/holland_mse_original_box_plot.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/holland_mse_original_box_plot.png')
-plotly.io.write_image(fig, out_path + '/holland_mse_original_box_plot.pdf')
+plotly.offline.plot(fig, filename=out_path + '/holland_mse_original_boxplot.html', auto_open=False, show_link=True)
+plotly.io.write_image(fig, out_path + '/holland_mse_original_boxplot.png')
+plotly.io.write_image(fig, out_path + '/holland_mse_original_boxplot.pdf')
 
 traces = []
 traces.append(go.Box(

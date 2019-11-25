@@ -9,13 +9,7 @@ from sklearn.metrics import mean_squared_error
 from routines.plot import get_axis, get_margin
 import plotly
 import plotly.graph_objects as go
-
-
-def run_regressor(otu_df, adherence):
-    clf = RandomForestRegressor(n_estimators=500)
-    output_pred = cross_val_predict(clf, otu_df, adherence, cv=2)
-    mse_list = [mean_squared_error([adherence[i]], [output_pred[i]]) for i in range(0, len(adherence))]
-    return mse_list
+from scipy.stats import spearmanr
 
 
 def run_iterative_regressor(otu_df, adherence, otu_list, suffix):
@@ -37,6 +31,7 @@ def run_iterative_regressor(otu_df, adherence, otu_list, suffix):
     features_dict = {k: v for k, v in sorted(features_dict.items(), reverse=True, key=lambda x: x[1])}
 
     mse_list = []
+    corr_list = []
     for experiment_id in range(1, 101):
         if experiment_id % 10 == 0:
             print(suffix + ' experiment #', str(experiment_id))
@@ -45,7 +40,8 @@ def run_iterative_regressor(otu_df, adherence, otu_list, suffix):
         clf = RandomForestRegressor(n_estimators=500)
         output_pred = cross_val_predict(clf, new_df, adherence, cv=2)
         mse_list.append(mean_squared_error(adherence, output_pred))
-    return mse_list
+        corr_list.append(spearmanr(adherence, output_pred))
+    return mse_list, corr_list
 
 
 box_points = 'outliers'
@@ -98,42 +94,14 @@ for i in range(0, len(countries)):
     otu_df[countries[i]] = pd.DataFrame(otu_data[countries[i]], subjects_country[countries[i]],
                                         list(common_otu_col_dict.keys()))
 
-mse = {}
-rmse = {}
-for i in range(0, len(countries)):
-    mse[countries[i]] = run_regressor(otu_df[countries[i]], adherence[i])
-    rmse[countries[i]] = np.sqrt(mse[countries[i]])
-
-traces = []
-for country in countries:
-    ys = rmse[country]
-    traces.append(go.Box(
-        y=ys,
-        name=country,
-        boxpoints=box_points
-    ))
-
-layout = go.Layout(
-    margin=get_margin(),
-    autosize=True,
-    showlegend=True,
-    xaxis=get_axis(''),
-    yaxis=get_axis('RMSE across countries at T0')
-)
-
-fig = go.Figure(data=traces, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/country_t0_box_plot.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/country_t0_box_plot.png')
-plotly.io.write_image(fig, out_path + '/country_t0_box_plot.pdf')
-
 target_country = 'Holland'
 
-markers_original_fn = path + '/original/random_forest.txt'
-f = open(markers_original_fn)
-markers_original = f.read().splitlines()
+markers_orig_fn = path + '/original/random_forest.txt'
+f = open(markers_orig_fn)
+markers_orig = f.read().splitlines()
 f.close()
-markers_original = list(set(common_otu_col_dict.keys()).intersection(set(markers_original)))
-non_markers_original = list(set(common_otu_col_dict.keys()).difference(set(markers_original)))
+markers_orig = list(set(common_otu_col_dict.keys()).intersection(set(markers_orig)))
+non_markers_orig = list(set(common_otu_col_dict.keys()).difference(set(markers_orig)))
 
 markers_rf_fn = path + '/rf_regressor/top_OTUs_list.txt'
 f = open(markers_rf_fn)
@@ -142,24 +110,28 @@ f.close()
 markers_rf = list(set(common_otu_col_dict.keys()).intersection(set(markers_rf)))
 non_markers_rf = list(set(common_otu_col_dict.keys()).difference(set(markers_rf)))
 
-markers_original_df = otu_df[target_country][markers_original]
-non_markers_original_df = otu_df[target_country][non_markers_original]
+markers_orig_df = otu_df[target_country][markers_orig]
+non_markers_orig_df = otu_df[target_country][non_markers_orig]
 markers_rf_df = otu_df[target_country][markers_rf]
 non_markers_rf_df = otu_df[target_country][non_markers_rf]
 
-markers_original_mse = run_iterative_regressor(markers_original_df, adherence[countries.index(target_country)],
-                                               markers_original, 'Markers original')
-non_markers_original_mse = run_iterative_regressor(non_markers_original_df, adherence[countries.index(target_country)],
-                                                   non_markers_original, 'Non-Markers original')
+markers_orig_mse, markers_orig_corr = run_iterative_regressor(markers_orig_df,
+                                                              adherence[countries.index(target_country)],
+                                                              markers_orig,
+                                                              'Markers original')
+non_markers_orig_mse, non_markers_orig_corr = run_iterative_regressor(non_markers_orig_df,
+                                                                      adherence[countries.index(target_country)],
+                                                                      non_markers_orig,
+                                                                      'Non-Markers original')
 
 traces = []
 traces.append(go.Box(
-    y=markers_original_mse,
+    y=markers_orig_mse,
     name='Markers',
     boxpoints=box_points
 ))
 traces.append(go.Box(
-    y=non_markers_original_mse,
+    y=non_markers_orig_mse,
     name='Non-Markers',
     boxpoints=box_points
 ))
@@ -173,14 +145,43 @@ layout = go.Layout(
 )
 
 fig = go.Figure(data=traces, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/holland_original_t0_box_plot.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/holland_original_t0_box_plot.png')
-plotly.io.write_image(fig, out_path + '/holland_original_t0_box_plot.pdf')
+plotly.offline.plot(fig, filename=out_path + '/holland_mse_original_box_plot.html', auto_open=False, show_link=True)
+plotly.io.write_image(fig, out_path + '/holland_mse_original_box_plot.png')
+plotly.io.write_image(fig, out_path + '/holland_mse_original_box_plot.pdf')
 
-markers_rf_mse = run_iterative_regressor(markers_rf_df, adherence[countries.index(target_country)],
-                                         markers_rf, 'Markers rf')
-non_markers_rf_mse = run_iterative_regressor(non_markers_rf_df, adherence[countries.index(target_country)],
-                                             non_markers_rf, 'Non-Markers rf')
+traces = []
+traces.append(go.Box(
+    y=markers_orig_corr,
+    name='Markers',
+    boxpoints=box_points
+))
+traces.append(go.Box(
+    y=non_markers_orig_corr,
+    name='Non-Markers',
+    boxpoints=box_points
+))
+
+layout = go.Layout(
+    margin=get_margin(),
+    autosize=True,
+    showlegend=True,
+    xaxis=get_axis(''),
+    yaxis=get_axis('Correlation across iterative models at Baseline')
+)
+
+fig = go.Figure(data=traces, layout=layout)
+plotly.offline.plot(fig, filename=out_path + '/holland_corr_original_boxplot.html', auto_open=False, show_link=True)
+plotly.io.write_image(fig, out_path + '/holland_corr_original_boxplot.png')
+plotly.io.write_image(fig, out_path + '/holland_corr_original_boxplot.pdf')
+
+markers_rf_mse, markers_rf_corr = run_iterative_regressor(markers_rf_df,
+                                                          adherence[countries.index(target_country)],
+                                                          markers_rf,
+                                                          'Markers rf')
+non_markers_rf_mse, non_markers_rf_corr = run_iterative_regressor(non_markers_rf_df,
+                                                                  adherence[countries.index(target_country)],
+                                                                  non_markers_rf,
+                                                                  'Non-Markers rf')
 
 traces = []
 traces.append(go.Box(
@@ -203,6 +204,31 @@ layout = go.Layout(
 )
 
 fig = go.Figure(data=traces, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/holland_rf_t0_box_plot.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/holland_rf_t0_box_plot.png')
-plotly.io.write_image(fig, out_path + '/holland_rf_t0_box_plot.pdf')
+plotly.offline.plot(fig, filename=out_path + '/holland_mse_rf_boxplot.html', auto_open=False, show_link=True)
+plotly.io.write_image(fig, out_path + '/holland_mse_rf_boxplot.png')
+plotly.io.write_image(fig, out_path + '/holland_mse_rf_boxplot.pdf')
+
+traces = []
+traces.append(go.Box(
+    y=markers_rf_corr,
+    name='Markers',
+    boxpoints=box_points
+))
+traces.append(go.Box(
+    y=non_markers_rf_corr,
+    name='Non-Markers',
+    boxpoints=box_points
+))
+
+layout = go.Layout(
+    margin=get_margin(),
+    autosize=True,
+    showlegend=True,
+    xaxis=get_axis(''),
+    yaxis=get_axis('Correlation across iterative models at Baseline')
+)
+
+fig = go.Figure(data=traces, layout=layout)
+plotly.offline.plot(fig, filename=out_path + '/holland_corr_rf_boxplot.html', auto_open=False, show_link=True)
+plotly.io.write_image(fig, out_path + '/holland_corr_rf_boxplot.png')
+plotly.io.write_image(fig, out_path + '/holland_corr_rf_boxplot.pdf')

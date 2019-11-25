@@ -18,6 +18,36 @@ def run_regressor(otu_df, adherence):
     return mse_list
 
 
+def run_iterative_regressor(otu_df, adherence, otu_list, suffix):
+    clf = RandomForestRegressor(n_estimators=500)
+    output = cross_validate(clf, otu_df, adherence, cv=2, return_estimator=True)
+    features_dict = dict((key, []) for key in otu_list)
+    for idx, estimator in enumerate(output['estimator']):
+        feature_importances = pd.DataFrame(estimator.feature_importances_,
+                                           index=otu_list,
+                                           columns=['importance']).sort_values('importance', ascending=False)
+
+        features_names = list(feature_importances.index.values)
+        features_values = list(feature_importances.values)
+        for feature_id in range(0, len(features_names)):
+            features_dict[features_names[feature_id]].append(features_values[feature_id][0])
+
+    for key in features_dict.keys():
+        features_dict[key] = np.mean(features_dict[key])
+    features_dict = {k: v for k, v in sorted(features_dict.items(), reverse=True, key=lambda x: x[1])}
+
+    mse_list = []
+    for experiment_id in range(1, 101):
+        if experiment_id % 10 == 0:
+            print(suffix + ' experiment #', str(experiment_id))
+        features_list = list(features_dict.keys())[0:experiment_id]
+        new_df = otu_df[features_list].copy()
+        clf = RandomForestRegressor(n_estimators=500)
+        output_pred = cross_val_predict(clf, new_df, adherence, cv=2)
+        mse_list.append(mean_squared_error(adherence, output_pred))
+    return mse_list
+
+
 box_points = 'outliers'
 
 path = get_path()
@@ -117,26 +147,19 @@ non_markers_original_df = otu_df[target_country][non_markers_original]
 markers_rf_df = otu_df[target_country][markers_rf]
 non_markers_rf_df = otu_df[target_country][non_markers_rf]
 
-markers_original_mse = run_regressor(markers_original_df, adherence[countries.index(target_country)])
-markers_original_rmse = np.sqrt(markers_original_mse)
-
-non_markers_original_mse = run_regressor(non_markers_original_df, adherence[countries.index(target_country)])
-non_markers_original_rmse = np.sqrt(non_markers_original_mse)
-
-markers_rf_mse = run_regressor(markers_rf_df, adherence[countries.index(target_country)])
-markers_rf_rmse = np.sqrt(markers_rf_mse)
-
-non_markers_rf_mse = run_regressor(non_markers_rf_df, adherence[countries.index(target_country)])
-non_markers_rf_rmse = np.sqrt(non_markers_rf_mse)
+markers_original_mse = run_iterative_regressor(markers_original_df, adherence[countries.index(target_country)],
+                                               markers_original, 'Markers original')
+non_markers_original_mse = run_iterative_regressor(non_markers_original_df, adherence[countries.index(target_country)],
+                                                   non_markers_original, 'Non-Markers original')
 
 traces = []
 traces.append(go.Box(
-    y=markers_original_rmse,
+    y=markers_original_mse,
     name='Markers',
     boxpoints=box_points
 ))
 traces.append(go.Box(
-    y=non_markers_original_rmse,
+    y=non_markers_original_mse,
     name='Non-Markers',
     boxpoints=box_points
 ))
@@ -146,10 +169,40 @@ layout = go.Layout(
     autosize=True,
     showlegend=True,
     xaxis=get_axis(''),
-    yaxis=get_axis('RMSE across countries at T0')
+    yaxis=get_axis('MSE across iterative models at Baseline')
 )
 
 fig = go.Figure(data=traces, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/country_t0_box_plot.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/country_t0_box_plot.png')
-plotly.io.write_image(fig, out_path + '/country_t0_box_plot.pdf')
+plotly.offline.plot(fig, filename=out_path + '/holland_original_t0_box_plot.html', auto_open=False, show_link=True)
+plotly.io.write_image(fig, out_path + '/holland_original_t0_box_plot.png')
+plotly.io.write_image(fig, out_path + '/holland_original_t0_box_plot.pdf')
+
+markers_rf_mse = run_iterative_regressor(markers_rf_df, adherence[countries.index(target_country)],
+                                         markers_rf, 'Markers rf')
+non_markers_rf_mse = run_iterative_regressor(non_markers_rf_df, adherence[countries.index(target_country)],
+                                             non_markers_rf, 'Non-Markers rf')
+
+traces = []
+traces.append(go.Box(
+    y=markers_rf_mse,
+    name='Markers',
+    boxpoints=box_points
+))
+traces.append(go.Box(
+    y=non_markers_rf_mse,
+    name='Non-Markers',
+    boxpoints=box_points
+))
+
+layout = go.Layout(
+    margin=get_margin(),
+    autosize=True,
+    showlegend=True,
+    xaxis=get_axis(''),
+    yaxis=get_axis('MSE across iterative models at Baseline')
+)
+
+fig = go.Figure(data=traces, layout=layout)
+plotly.offline.plot(fig, filename=out_path + '/holland_rf_t0_box_plot.html', auto_open=False, show_link=True)
+plotly.io.write_image(fig, out_path + '/holland_rf_t0_box_plot.png')
+plotly.io.write_image(fig, out_path + '/holland_rf_t0_box_plot.pdf')

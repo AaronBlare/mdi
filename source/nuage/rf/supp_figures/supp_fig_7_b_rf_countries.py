@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import cross_validate, cross_val_predict
+from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import mean_squared_error
 from routines.plot import get_axis, get_margin
 import plotly
@@ -36,13 +36,17 @@ countries = ['Italy', 'UK', 'Holland', 'Poland', 'France']
 
 metadata, obs_dict = config.get_target_subject_dicts(common_subjects, target_keys, 'T0')
 
-adherence = [[] for i in range(0, len(countries))]
+adherence = {}
 subjects_country = {}
-for i, country in enumerate(countries):
+for country in countries:
     codes = obs_dict['country'][country]
 
     for code in codes:
-        adherence[i].append(metadata[code]['compliance160'])
+
+        if country in adherence:
+            adherence[country].append(metadata[code]['compliance160'])
+        else:
+            adherence[country] = [metadata[code]['compliance160']]
 
         if metadata[code]['country'] not in subjects_country:
             subjects_country[metadata[code]['country']] = [code]
@@ -53,26 +57,26 @@ common_otus = config.get_common_otus()
 common_otu_t0, common_otu_t1, common_otu_col_dict = config.separate_common_otus()
 
 otu_data = {}
-for i in range(0, len(countries)):
-    otu_data[countries[i]] = np.zeros((len(subjects_country[countries[i]]), len(common_otus)), dtype=np.float32)
+for country in countries:
+    otu_data[country] = np.zeros((len(subjects_country[country]), len(common_otus)), dtype=np.float32)
 
 subject_row_dict_T0 = config.otu_counts.subject_row_dict_T0
 
-for i in range(0, len(countries)):
-    for sub_id, sub in enumerate(subjects_country[countries[i]]):
+for country in countries:
+    for sub_id, sub in enumerate(subjects_country[country]):
         curr_otu = common_otu_t0[subject_row_dict_T0[sub], :]
-        otu_data[countries[i]][sub_id, :] = curr_otu
+        otu_data[country][sub_id, :] = curr_otu
 
 otu_df = {}
-for i in range(0, len(countries)):
-    otu_df[countries[i]] = pd.DataFrame(otu_data[countries[i]], subjects_country[countries[i]],
+for country in countries:
+    otu_df[country] = pd.DataFrame(otu_data[country], subjects_country[country],
                                         list(common_otu_col_dict.keys()))
 
 mse = {}
 rmse = {}
-for i in range(0, len(countries)):
-    mse[countries[i]] = run_regressor(otu_df[countries[i]], adherence[i])
-    rmse[countries[i]] = np.sqrt(mse[countries[i]])
+for country in countries:
+    mse[country] = run_regressor(otu_df[country], adherence[country])
+    rmse[country] = np.sqrt(mse[country])
 
 traces = []
 for country in countries:

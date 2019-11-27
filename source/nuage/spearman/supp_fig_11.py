@@ -11,6 +11,78 @@ from routines.plot import cmocean_to_plotly
 import cmocean
 from statsmodels.stats.multitest import multipletests
 
+def plot_heatmaps(xs, ys, rhos, p_values, time):
+
+    layout = go.Layout(
+        margin=get_margin(),
+        autosize=True,
+        showlegend=False,
+        yaxis=dict(
+            type='category',
+            showgrid=True,
+            showline=True,
+            mirror='ticks',
+            titlefont=dict(
+                family='Arial',
+                color='black',
+                size=2,
+            ),
+            showticklabels=True,
+            tickangle=0,
+            tickfont=dict(
+                family='Arial',
+                color='black',
+                size=2
+            ),
+            exponentformat='e',
+            showexponent='all'
+        )
+    )
+
+    passed, p_values_corr, _, _ = multipletests(p_values.flatten(), 0.05, method='fdr_bh')
+    passed.shape = (len(ys), len(xs))
+    passed = passed.astype(int)
+    p_values_corr.shape = (len(ys), len(xs))
+
+    trace = go.Heatmap(
+        z=rhos,
+        x=xs,
+        y=ys,
+        colorscale=balance)
+    fig = go.Figure(data=trace, layout=layout)
+    plotly.offline.plot(fig, filename=out_path + '/rhos_' + time + '.html', auto_open=False, show_link=True)
+    plotly.io.write_image(fig, out_path + '/rhos_' + time + '.png')
+    plotly.io.write_image(fig, out_path + '/rhos_' + time + '.pdf')
+
+    trace = go.Heatmap(
+        z=-np.log10(p_values),
+        x=xs,
+        y=ys,
+        colorscale=dense_inv)
+    fig = go.Figure(data=trace, layout=layout)
+    plotly.offline.plot(fig, filename=out_path + '/p_values_' + time + '.html', auto_open=False, show_link=True)
+    plotly.io.write_image(fig, out_path + '/p_values_' + time + '.png')
+    plotly.io.write_image(fig, out_path + '/p_values_' + time + '.pdf')
+
+    trace = go.Heatmap(
+        z=-np.log10(p_values_corr),
+        x=xs,
+        y=ys,
+        colorscale=dense_inv)
+    fig = go.Figure(data=trace, layout=layout)
+    plotly.offline.plot(fig, filename=out_path + '/p_values_corr_' + time + '.html', auto_open=False, show_link=True)
+    plotly.io.write_image(fig, out_path + '/p_values_corr_' + time + '.png')
+    plotly.io.write_image(fig, out_path + '/p_values_corr_' + time + '.pdf')
+
+    trace = go.Heatmap(
+        z=passed,
+        x=xs,
+        y=ys)
+    fig = go.Figure(data=trace, layout=layout)
+    plotly.offline.plot(fig, filename=out_path + '/passed_' + time + '.html', auto_open=False, show_link=True)
+    plotly.io.write_image(fig, out_path + '/passed_' + time + '.png')
+    plotly.io.write_image(fig, out_path + '/passed_' + time + '.pdf')
+
 balance = cmocean_to_plotly(cmocean.cm.balance, 100)
 dense_inv = cmocean_to_plotly(cmocean.cm.dense, 10)
 
@@ -90,161 +162,6 @@ for y_id, y in enumerate(ys): # otu
         rho_entire[y_id, x_id] = rho
         p_value_entire[y_id, x_id] = p_value
 
-reject_t0, p_value_corr_t0, _, _ = multipletests(p_value_t0.flatten(), 0.05, method='fdr_bh')
-reject_t0.shape=(len(ys), len(xs))
-reject_t0 = reject_t0.astype(int)
-p_value_corr_t0.shape=(len(ys), len(xs))
-
-reject_t1, p_value_corr_t1, _, _ = multipletests(p_value_t1.flatten(), 0.05, method='fdr_bh')
-reject_t1.shape=(len(ys), len(xs))
-reject_t1 = reject_t1.astype(int)
-p_value_corr_t1.shape=(len(ys), len(xs))
-
-reject_entire, p_value_corr_entire, _, _ = multipletests(p_value_entire.flatten(), 0.05, method='fdr_bh')
-reject_entire.shape=(len(ys), len(xs))
-reject_entire = reject_entire.astype(int)
-p_value_corr_entire.shape=(len(ys), len(xs))
-
-layout = go.Layout(
-    margin=get_margin(),
-    autosize=True,
-    showlegend=False,
-    yaxis = dict(
-        type='category',
-        showgrid=True,
-        showline=True,
-        mirror='ticks',
-        titlefont=dict(
-            family='Arial',
-            color='black',
-            size=2,
-        ),
-        showticklabels=True,
-        tickangle=0,
-        tickfont=dict(
-            family='Arial',
-            color='black',
-            size=2
-        ),
-        exponentformat='e',
-        showexponent='all'
-    )
-)
-
-trace = go.Heatmap(
-        z=rho_t0,
-        x=xs,
-        y=ys,
-        colorscale=balance)
-fig = go.Figure(data=trace, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/fig_11_a_t0.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/fig_11_a_t0.png')
-plotly.io.write_image(fig, out_path + '/fig_11_a_t0.pdf')
-
-trace = go.Heatmap(
-        z=-np.log10(p_value_t0),
-        x=xs,
-        y=ys,
-        colorscale=dense_inv)
-fig = go.Figure(data=trace, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/fig_11_a_p_value_t0.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/fig_11_a_p_value_t0.png')
-plotly.io.write_image(fig, out_path + '/fig_11_a_p_value_t0.pdf')
-
-trace = go.Heatmap(
-        z=-np.log10(p_value_corr_t0),
-        x=xs,
-        y=ys,
-        colorscale=dense_inv)
-fig = go.Figure(data=trace, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/fig_11_a_p_value_corr_t0.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/fig_11_a_p_value_corr_t0.png')
-plotly.io.write_image(fig, out_path + '/fig_11_a_p_value_corr_t0.pdf')
-
-trace = go.Heatmap(
-        z=reject_t0,
-        x=xs,
-        y=ys)
-fig = go.Figure(data=trace, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/fig_11_a_reject_t0.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/fig_11_a_reject_t0.png')
-plotly.io.write_image(fig, out_path + '/fig_11_a_reject_t0.pdf')
-
-trace = go.Heatmap(
-        z=rho_t1,
-        x=xs,
-        y=ys,
-        colorscale=balance)
-fig = go.Figure(data=trace, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/fig_11_a_t1.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/fig_11_a_t1.png')
-plotly.io.write_image(fig, out_path + '/fig_11_a_t1.pdf')
-
-trace = go.Heatmap(
-        z=-np.log10(p_value_t1),
-        x=xs,
-        y=ys,
-        colorscale=dense_inv)
-fig = go.Figure(data=trace, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/fig_11_a_p_value_t1.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/fig_11_a_p_value_t1.png')
-plotly.io.write_image(fig, out_path + '/fig_11_a_p_value_t1.pdf')
-
-trace = go.Heatmap(
-        z=-np.log10(p_value_corr_t1),
-        x=xs,
-        y=ys,
-        colorscale=dense_inv)
-fig = go.Figure(data=trace, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/fig_11_a_p_value_corr_t1.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/fig_11_a_p_value_corr_t1.png')
-plotly.io.write_image(fig, out_path + '/fig_11_a_p_value_corr_t1.pdf')
-
-trace = go.Heatmap(
-        z=reject_t1,
-        x=xs,
-        y=ys)
-fig = go.Figure(data=trace, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/fig_11_a_reject_t1.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/fig_11_a_reject_t1.png')
-plotly.io.write_image(fig, out_path + '/fig_11_a_reject_t1.pdf')
-
-trace = go.Heatmap(
-        z=rho_entire,
-        x=xs,
-        y=ys,
-        colorscale=balance)
-fig = go.Figure(data=trace, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/fig_11_a_entire.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/fig_11_a_entire.png')
-plotly.io.write_image(fig, out_path + '/fig_11_a_entire.pdf')
-
-trace = go.Heatmap(
-        z=-np.log10(p_value_entire),
-        x=xs,
-        y=ys,
-        colorscale=dense_inv)
-fig = go.Figure(data=trace, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/fig_11_a_p_value_entire.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/fig_11_a_p_value_entire.png')
-plotly.io.write_image(fig, out_path + '/fig_11_a_p_value_entire.pdf')
-
-trace = go.Heatmap(
-        z=-np.log10(p_value_corr_entire),
-        x=xs,
-        y=ys,
-        colorscale=dense_inv)
-fig = go.Figure(data=trace, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/fig_11_a_p_value_corr_entire.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/fig_11_a_p_value_corr_entire.png')
-plotly.io.write_image(fig, out_path + '/fig_11_a_p_value_corr_entire.pdf')
-
-
-trace = go.Heatmap(
-        z=reject_entire,
-        x=xs,
-        y=ys)
-fig = go.Figure(data=trace, layout=layout)
-plotly.offline.plot(fig, filename=out_path + '/fig_11_a_reject_entire.html', auto_open=False, show_link=True)
-plotly.io.write_image(fig, out_path + '/fig_11_a_reject_entire.png')
-plotly.io.write_image(fig, out_path + '/fig_11_a_reject_entire.pdf')
+plot_heatmaps(xs, ys, rho_t0, p_value_t0, 't0')
+plot_heatmaps(xs, ys, rho_t1, p_value_t1, 't1')
+plot_heatmaps(xs, ys, rho_entire, p_value_entire, 'entire')

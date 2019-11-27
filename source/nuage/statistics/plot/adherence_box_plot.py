@@ -30,9 +30,9 @@ for country in countries:
 
     ys = []
     for code in codes:
-        ys.append(metadata_t0[code]['compliance160'])
+        ys.append(float(metadata_t0[code]['compliance160']) / 160.0 * 100.0 )
 
-    color = cl.scales['8']['qual']['Set1'][list(obs_dict_t0['country'].keys()).index(country)]
+    color = cl.scales['8']['qual']['Set1'][countries.index(country)]
     coordinates = color[4:-1].split(',')
     marker_color = 'rgba(' + ','.join(coordinates) + ',' + str(0.5) + ')'
     line_color = 'rgba(' + ','.join(coordinates) + ',' + str(1.0) + ')'

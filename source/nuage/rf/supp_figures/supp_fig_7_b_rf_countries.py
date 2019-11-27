@@ -9,6 +9,8 @@ from sklearn.metrics import mean_squared_error
 from routines.plot import get_axis, get_margin
 import plotly
 import plotly.graph_objects as go
+import colorlover as cl
+
 
 
 def run_regressor(otu_df, adherence):
@@ -81,6 +83,12 @@ for country in countries:
 traces = []
 for country in countries:
     ys = rmse[country]
+
+    color = cl.scales['8']['qual']['Set1'][countries.index(country)]
+    coordinates = color[4:-1].split(',')
+    marker_color = 'rgba(' + ','.join(coordinates) + ',' + str(0.5) + ')'
+    line_color = 'rgba(' + ','.join(coordinates) + ',' + str(1.0) + ')'
+
     traces.append(go.Box(
         y=ys,
         name=country,

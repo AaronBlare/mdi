@@ -2,6 +2,7 @@ from config.otu_counts import load_otu_counts, OTUCountsDelta
 from config.nutrition import load_nutrition
 from config.food_groups import load_food_groups
 from config.subjects import load_subject_info, T0_T1_subject_separation
+from config.cytokines import load_cytokines, T0_T1_cytokines_separation
 import numpy as np
 
 class Config:
@@ -16,6 +17,9 @@ class Config:
 
         self.subject_info = load_subject_info(self.path_in + '/' + 'correct_subject_info.tsv')
         self.subject_info_T0, self.subject_info_T1 = T0_T1_subject_separation(self.subject_info)
+
+        self.cytokines = load_cytokines(self.path_in + '/' + 'cytokines_logoddrank.tsv')
+        self.cytokines_T0, self.cytokines_T1 = T0_T1_cytokines_separation(self.cytokines)
 
         self.food_groups = load_food_groups(self.path_in + '/' + 'food_groups_long.tsv', norm='normalize')
         self.nutrition = load_nutrition(self.path_in + '/' + 'nutrition_long.tsv', norm='normalize')
@@ -60,6 +64,44 @@ class Config:
                 common_subjects.remove(elem)
 
         print(f'\nNumber of common subjects with adherence: {len(common_subjects)}')
+
+        return common_subjects
+
+    def get_common_subjects_with_adherence_and_cytokines(self, cytokines_list):
+        common_subjects = self.get_common_subjects()
+
+        adherence_key = 'compliance160'
+        metadata_ad_t0, obs_dict_ad_t0 = self.get_target_subject_dicts(common_subjects, [adherence_key], 'T0')
+        metadata_ad_t1, obs_dict_ad_t1 = self.get_target_subject_dicts(common_subjects, [adherence_key], 'T1')
+
+        subjects_wo_adherence = []
+        for code in common_subjects:
+            curr_adherence_t0 = metadata_ad_t0[code][adherence_key]
+            curr_adherence_t1 = metadata_ad_t1[code][adherence_key]
+            if curr_adherence_t0 == '' or curr_adherence_t1 == '':
+                subjects_wo_adherence.append(code)
+
+        subjects_wo_cytokines = []
+        for code in common_subjects:
+            if code not in self.cytokines_T0['CODE'] or code not in self.cytokines_T1['CODE']:
+                subjects_wo_cytokines.append(code)
+            else:
+                subj_id_t0 = self.cytokines_T0['CODE'].index(code)
+                subj_id_t1 = self.cytokines_T0['CODE'].index(code)
+                for cytokine in cytokines_list:
+                    if self.cytokines_T0[cytokine][subj_id_t0] == '' or self.cytokines_T1[cytokine][subj_id_t1] == '':
+                        subjects_wo_cytokines.append(code)
+                        break
+
+        total_del_list = list(set(subjects_wo_adherence).union(set(subjects_wo_cytokines)))
+
+        if len(total_del_list) > 0:
+            for elem in total_del_list:
+                common_subjects.remove(elem)
+
+        print(f'\nNumber of common subjects with adherence and cytokines: {len(common_subjects)}')
+
+        common_subjects.sort()
 
         return common_subjects
 

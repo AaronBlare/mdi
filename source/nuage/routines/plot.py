@@ -1,10 +1,21 @@
 import plotly.graph_objs as go
 import plotly.figure_factory as ff
-import plotly.express as px
 import plotly
-import pandas as pd
 import numpy as np
-from infrastructure.load.table import load_table_dict_xlsx
+
+def cmocean_to_plotly(cmap, pl_entries):
+    h = 1.0/(pl_entries-1)
+    pl_colorscale = []
+
+    for k in range(pl_entries):
+        tmp = np.array(cmap(k*h)[:3])*255
+        C = []
+        for i in tmp:
+            C.append(np.uint8(i))
+        C = np.array(C)
+        pl_colorscale.append([k*h, 'rgb'+str((C[0], C[1], C[2]))])
+
+    return pl_colorscale
 
 
 def get_axis(title):

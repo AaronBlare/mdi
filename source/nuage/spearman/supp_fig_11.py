@@ -11,6 +11,69 @@ from routines.plot import cmocean_to_plotly
 import cmocean
 from statsmodels.stats.multitest import multipletests
 
+def get_otus(type):
+    if type == 'modified':
+
+        regressor_dict = load_table_dict_xlsx(path + '/rf_regressor/top_OTU_spearman.xlsx')
+
+        otus = np.array(regressor_dict['otu'])
+        otus_rho = np.array(regressor_dict['rho'])
+        otus_p_value_fdr = np.array(regressor_dict['p_value_fdr'])
+
+        otus_order = np.argsort(otus_rho)
+        otus = otus[otus_order]
+        otus_rho = otus_rho[otus_order]
+        otus_p_value_fdr = otus_p_value_fdr[otus_order]
+
+        otus_dn_ids = []
+        otus_dp_ids = []
+        for id, otu in enumerate(otus):
+            if otus_rho[id] < 0 and otus_p_value_fdr[id] < 0.05:
+                otus_dn_ids.append(id)
+            if otus_rho[id] > 0 and otus_p_value_fdr[id] < 0.05:
+                otus_dp_ids.append(id)
+
+        return otus, otus_dn_ids, otus_dp_ids
+
+    elif type == 'original':
+
+        spearman_dict = load_table_dict_xlsx(path + '/spearman/table/T0_T1_spearman.xlsx')
+
+        spearman_otus = spearman_dict['otu']
+        spearman_otus_rho = np.array(spearman_dict['rho'])
+        spearman_otus_p_value_fdr = np.array(spearman_dict['p-value(FDR)'])
+
+        f = open(path + '/original/random_forest.txt')
+        target_otus = f.read().splitlines()
+        f.close()
+
+        indexes = []
+        for otu in target_otus:
+            if otu in spearman_otus:
+                indexes.append(spearman_otus.index(otu))
+
+        indexes = np.array(indexes)
+
+        otus = np.array(spearman_otus)[indexes]
+        otus_rho = spearman_otus_rho[indexes]
+        otus_p_value_fdr = spearman_otus_p_value_fdr[indexes]
+
+        otus_order = np.argsort(otus_rho)
+        otus = otus[otus_order]
+        otus_rho = otus_rho[otus_order]
+        otus_p_value_fdr = otus_p_value_fdr[otus_order]
+
+        otus_dn_ids = []
+        otus_dp_ids = []
+        for id, otu in enumerate(otus):
+            if otus_rho[id] < 0 and otus_p_value_fdr[id] < 0.05:
+                otus_dn_ids.append(id)
+            if otus_rho[id] > 0 and otus_p_value_fdr[id] < 0.05:
+                otus_dp_ids.append(id)
+
+        return otus, otus_dn_ids, otus_dp_ids
+
+
 def plot_heatmaps(xs, ys, rhos, p_values, time):
 
     layout = go.Layout(
@@ -86,10 +149,12 @@ def plot_heatmaps(xs, ys, rhos, p_values, time):
 balance = cmocean_to_plotly(cmocean.cm.balance, 100)
 dense_inv = cmocean_to_plotly(cmocean.cm.dense, 10)
 
+type = 'original'
+
 path = get_path()
 
 in_path = path
-out_path = path + '/spearman/supp_fig_11'
+out_path = path + '/spearman/supp_fig_11/' + type
 if not os.path.isdir(out_path):
     os.makedirs(out_path)
 
@@ -102,17 +167,7 @@ common_subjects = config.get_common_subjects_with_adherence_and_cytokines(cytoki
 
 xs = cytokines
 
-regressor_dict = load_table_dict_xlsx(path + '/rf_regressor/top_OTU_spearman.xlsx')
-
-otus = np.array(regressor_dict['otu'])
-otus_rho = np.array(regressor_dict['rho'])
-otus_p_value_fdr = np.array(regressor_dict['p_value_fdr'])
-
-otus_order = np.argsort(otus_rho)
-otus = otus[otus_order]
-otus_rho = otus_rho[otus_order]
-otus_p_value_fdr = otus_p_value_fdr[otus_order]
-
+otus, _, _ = get_otus(type)
 ys = otus
 
 common_subjects_entire = common_subjects + common_subjects

@@ -6,6 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import cross_validate, cross_val_predict
 from scipy.stats import spearmanr
 from statsmodels.stats.multitest import multipletests
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 
 def pipeline_regressor(config):
@@ -305,3 +306,83 @@ def run_regressor(config, otu_df, adherence_dict, adherence_key, timeline):
     f.close()
 
     return top_features, top_features_imp
+
+
+def run_rf_regressor(otu_df, subject_key):
+    clf = RandomForestRegressor(n_estimators=500, min_samples_split=100)
+    output_pred = cross_val_predict(clf, otu_df, subject_key, cv=2)
+    mse_list = []
+    mae_list = []
+    for i in range(0, len(subject_key)):
+        curr_mse = mean_squared_error(subject_key[i], output_pred[i])
+        curr_mae = mean_absolute_error(subject_key[i], output_pred[i])
+        mse_list.append(curr_mse)
+        mse_list.append(curr_mae)
+    return mse_list, mae_list
+
+
+def pipeline_regressor_new(config):
+    subject_row_dict_T0 = config.otu_counts.subject_row_dict_T0
+    subject_row_dict_T1 = config.otu_counts.subject_row_dict_T1
+
+    common_otus = config.get_common_otus()
+
+    common_otu_t0, common_otu_t1, common_otu_col_dict = config.separate_common_otus()
+
+    countries = ['Italy', 'UK', 'Holland', 'Poland', 'France']
+
+    adherence_key = 'compliance160'
+    age_key = 'age'
+    country_key = 'country'
+
+    target_keys = [adherence_key, age_key, country_key]
+
+    common_subjects = config.get_common_subjects_with_adherence()
+    metadata_t0, obs_dict_t0 = config.get_target_subject_dicts(common_subjects, target_keys, 'T0')
+    metadata_t1, obs_dict_t1 = config.get_target_subject_dicts(common_subjects, target_keys, 'T1')
+
+    subjects_country = {}
+    for subject in common_subjects:
+        country = metadata_t0[subject][country_key]
+        if country in subjects_country:
+            subjects_country[country].append(subject)
+        else:
+            subjects_country[country] = [subject]
+
+    otu_country_data = {}
+    for country in countries:
+        otu_country_data[country] = np.zeros((len(subjects_country[country]), len(common_otus)), dtype=np.float32)
+
+    subjects_names = {key: [] for key in countries}
+    adherence = {key: [] for key in countries}
+    age = {key: [] for key in countries}
+
+    for country in countries:
+        for sub_id, sub in enumerate(subjects_country[country]):
+            curr_adherence_t0 = metadata_t0[sub][adherence_key]
+            curr_adherence_t1 = metadata_t1[sub][adherence_key]
+
+            adherence[country].append(curr_adherence_t0)
+            adherence[country].append(curr_adherence_t1)
+
+            curr_age_t0 = metadata_t0[sub][age_key]
+            curr_age_t1 = metadata_t1[sub][age_key]
+
+            age[country].append(curr_age_t0)
+            age[country].append(curr_age_t1)
+
+            curr_otu_t0 = common_otu_t0[subject_row_dict_T0[sub], :]
+            curr_otu_t1 = common_otu_t1[subject_row_dict_T1[sub], :]
+
+            subjects_names[country].append(sub + '_T0')
+            subjects_names[country].append(sub + '_T1')
+
+            otu_country_data[country][sub_id, :] = curr_otu_t0 + curr_otu_t1
+
+    for country in countries:
+        otu_df = pd.DataFrame(otu_country_data[country], 
+                              subjects_names[country],
+                              list(config.common_otu_col_dict.keys()))
+
+        mse_adh, mae_adh = run_rf_regressor(otu_df, adherence[country])
+        mse_age, mae_age = run_rf_regressor(otu_df, age[country])

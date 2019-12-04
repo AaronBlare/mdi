@@ -159,8 +159,8 @@ def pipeline_regressor(config):
     f.close()
 
     diet_positive_imp, diet_positive_names_bact = map(list,
-                                                 zip(*sorted(zip(diet_positive_imp, diet_positive_names_bact),
-                                                             reverse=False)))
+                                                      zip(*sorted(zip(diet_positive_imp, diet_positive_names_bact),
+                                                                  reverse=False)))
 
     f = open(config.path_in + '/original/' + 'diet_positive.txt')
     diet_positive_article = f.read().splitlines()
@@ -186,8 +186,8 @@ def pipeline_regressor(config):
             print(otu_name + ' is positive, but in article - negative')
 
     diet_negative_imp, diet_negative_names_bact = map(list,
-                                                 zip(*sorted(zip(diet_negative_imp, diet_negative_names_bact),
-                                                             reverse=False)))
+                                                      zip(*sorted(zip(diet_negative_imp, diet_negative_names_bact),
+                                                                  reverse=False)))
     colors_negative = ['lightslategray', ] * len(diet_negative_names_bact)
 
     for name_id in range(0, len(diet_negative_names_bact)):
@@ -368,7 +368,7 @@ def save_list(config, data, suffix):
     f.close()
 
 
-def pipeline_regressor_countries(config):
+def pipeline_regressor_countries(config, use_files):
     subject_row_dict_T0 = config.otu_counts.subject_row_dict_T0
     subject_row_dict_T1 = config.otu_counts.subject_row_dict_T1
 
@@ -377,6 +377,20 @@ def pipeline_regressor_countries(config):
     common_otu_t0, common_otu_t1, common_otu_col_dict = config.separate_common_otus()
 
     countries = ['Italy', 'UK', 'Holland', 'Poland', 'France']
+    if use_files:
+        num_otus = {'Italy': 120, 'UK': 50, 'Holland': 50, 'Poland': 50, 'France': 30}
+    else:
+        num_otus = {key: len(common_otus) for key in countries}
+
+    otus_countries = {key: [] for key in countries}
+    for country in countries:
+        if use_files:
+            f = open(config.path_out + '/' + country + '_adh_otus.txt', 'r')
+            otus = [line.rstrip() for line in f]
+            f.close()
+            otus_countries[country] = otus[:num_otus[country]]
+        else:
+            otus_countries[country] = common_otus
 
     adherence_key = 'compliance160'
     age_key = 'age'
@@ -398,11 +412,18 @@ def pipeline_regressor_countries(config):
 
     otu_country_data = {}
     for country in countries:
-        otu_country_data[country] = np.zeros((len(subjects_country[country]) * 2, len(common_otus)), dtype=np.float32)
+        otu_country_data[country] = np.zeros((len(subjects_country[country]) * 2, num_otus[country]), dtype=np.float32)
 
     subjects_names = {key: [] for key in countries}
     adherence = {key: [] for key in countries}
     age = {key: [] for key in countries}
+
+    otus_ids = {key: [] for key in countries}
+    for country in countries:
+        if use_files:
+            otus_ids[country] = [common_otu_col_dict[key] for key in otus_countries[country]]
+        else:
+            otus_ids[country] = [common_otu_col_dict[key] for key in otus_countries[country]]
 
     for country in countries:
         for sub_id, sub in enumerate(subjects_country[country]):
@@ -418,8 +439,8 @@ def pipeline_regressor_countries(config):
             age[country].append(curr_age_t0)
             age[country].append(curr_age_t1)
 
-            curr_otu_t0 = common_otu_t0[subject_row_dict_T0[sub], :]
-            curr_otu_t1 = common_otu_t1[subject_row_dict_T1[sub], :]
+            curr_otu_t0 = common_otu_t0[subject_row_dict_T0[sub], otus_ids[country]]
+            curr_otu_t1 = common_otu_t1[subject_row_dict_T1[sub], otus_ids[country]]
 
             subjects_names[country].append(sub + '_T0')
             subjects_names[country].append(sub + '_T1')
@@ -431,32 +452,24 @@ def pipeline_regressor_countries(config):
     mae_adherence = {key: [] for key in countries}
     rmse_adherence = {key: [] for key in countries}
 
-    mse_age = {key: [] for key in countries}
-    rmse_age = {key: [] for key in countries}
-    mae_age = {key: [] for key in countries}
     for country in countries:
         otu_df = pd.DataFrame(otu_country_data[country],
                               subjects_names[country],
-                              list(config.common_otu_col_dict.keys()))
+                              otus_countries[country])
 
         curr_mse_adh, curr_rmse_adh, curr_mae_adh = run_regressor_mae_mse(otu_df, adherence[country])
-        curr_mse_age, curr_rmse_age, curr_mae_age = run_regressor_mae_mse(otu_df, age[country])
 
         mse_adherence[country] = curr_mse_adh
         mae_adherence[country] = curr_mae_adh
         rmse_adherence[country] = curr_rmse_adh
 
-        mse_age[country] = curr_mse_age
-        mae_age[country] = curr_mae_age
-        rmse_age[country] = curr_rmse_age
+    suffix = '_adh'
+    if use_files:
+        suffix += '_opt'
 
-    plot_box(mse_adherence, list(mse_adherence.keys()), config.path_out, 'MSE_adh')
-    plot_box(rmse_adherence, list(rmse_adherence.keys()), config.path_out, 'RMSE_adh')
-    plot_box(mae_adherence, list(mae_adherence.keys()), config.path_out, 'MAE_adh')
-
-    plot_box(mse_age, list(mse_age.keys()), config.path_out, 'MSE_age')
-    plot_box(rmse_age, list(rmse_age.keys()), config.path_out, 'RMSE_age')
-    plot_box(mae_age, list(mae_age.keys()), config.path_out, 'MAE_age')
+    plot_box(mse_adherence, list(mse_adherence.keys()), config.path_out, 'MSE', suffix)
+    plot_box(rmse_adherence, list(rmse_adherence.keys()), config.path_out, 'RMSE', suffix)
+    plot_box(mae_adherence, list(mae_adherence.keys()), config.path_out, 'MAE', suffix)
 
 
 def pipeline_seq_regressor_countries(config):

@@ -149,13 +149,15 @@ def plot_hist(data, names, colors, suffix, figure_file_path):
     plotly.io.write_image(fig, figure_file_path + suffix + '_hist.pdf')
 
 
-def plot_box(data_dict, names, figure_file_path, title):
+def plot_box(data_dict, names, figure_file_path, title, suffix):
     fig = go.Figure()
     for name in names:
         data = data_dict[name]
         fig.add_trace(go.Box(x=data, name=name))
+        fig.update_xaxes(title=go.layout.xaxis.Title(text=title))
 
-    plotly.offline.plot(fig, filename=figure_file_path + '/' + title + '_boxplot.html', auto_open=False, show_link=True)
+    plotly.offline.plot(fig, filename=figure_file_path + '/' + title + suffix + '_boxplot.html',
+                        auto_open=False, show_link=True)
     # plotly.io.write_image(fig, figure_file_path + 'boxplot.png')
     # plotly.io.write_image(fig, figure_file_path + 'boxplot.pdf')
 

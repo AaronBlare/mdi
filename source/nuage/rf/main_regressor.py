@@ -12,5 +12,6 @@ if not os.path.isdir(result_file_path):
     os.makedirs(result_file_path)
 
 config = Config(data_file_path, result_file_path)
+use_files = 1
 
-pipeline_seq_regressor_countries(config)
+pipeline_regressor_countries(config, use_files)

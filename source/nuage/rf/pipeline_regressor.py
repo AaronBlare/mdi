@@ -327,6 +327,7 @@ def run_seq_regressor(otu_df, subject_key):
     top_features = list(features_dict.keys())
 
     correlation_list = []
+    mae_list = []
     num_features_list = []
     for experiment_id in range(1, 201):
         if experiment_id % 10 == 0:
@@ -337,9 +338,10 @@ def run_seq_regressor(otu_df, subject_key):
         clf = RandomForestRegressor(n_estimators=500, min_samples_split=100)
         output_pred = cross_val_predict(clf, new_df, subject_key, cv=2)
         correlation_list.append(abs(spearmanr(subject_key, output_pred)[0]))
+        mae_list.append(mean_absolute_error(subject_key, output_pred))
         num_features_list.append(features_list_len)
 
-    return top_features, correlation_list, num_features_list
+    return top_features, correlation_list, mae_list, num_features_list
 
 
 def run_regressor_mae_mse(otu_df, subject_key):
@@ -521,11 +523,13 @@ def pipeline_seq_regressor_countries(config):
                               subjects_names[country],
                               list(config.common_otu_col_dict.keys()))
 
-        top_otu_adh, corr_list, num_features = run_seq_regressor(otu_df, adherence[country])
-        plot_scatter(num_features, corr_list, 'Correlation coefficient', country, config.path_out)
+        top_otu_adh, corr_list, mae_list, num_features = run_seq_regressor(otu_df, adherence[country])
+        plot_scatter(num_features, corr_list, 'Correlation coefficient', country + '_adh_corr', config.path_out)
+        plot_scatter(num_features, mae_list, 'MAE', country + '_adh_mae', config.path_out)
 
-        top_otu_age, corr_list, num_features = run_seq_regressor(otu_df, age[country])
-        plot_scatter(num_features, corr_list, 'Correlation coefficient', country, config.path_out)
+        top_otu_age, corr_list, mae_list, num_features = run_seq_regressor(otu_df, age[country])
+        plot_scatter(num_features, corr_list, 'Correlation coefficient', country + '_age_corr', config.path_out)
+        plot_scatter(num_features, mae_list, 'MAE', country + '_age_mae', config.path_out)
 
         save_list(config, top_otu_adh, country + '_adh')
         save_list(config, top_otu_age, country + '_age')

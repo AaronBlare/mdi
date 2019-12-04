@@ -309,7 +309,7 @@ def run_regressor(config, otu_df, adherence_dict, adherence_key, timeline):
 
 
 def run_seq_regressor(otu_df, subject_key):
-    clf = RandomForestRegressor(n_estimators=500, min_samples_split=100)
+    clf = RandomForestRegressor(n_estimators=500)
     output = cross_validate(clf, otu_df, subject_key, cv=2, return_estimator=True)
     features_dict = dict((key, []) for key in list(otu_df.columns.values))
     for idx, estimator in enumerate(output['estimator']):
@@ -335,7 +335,7 @@ def run_seq_regressor(otu_df, subject_key):
         features_list_len = experiment_id
         features_list = list(features_dict.keys())[0:features_list_len]
         new_df = otu_df[features_list].copy()
-        clf = RandomForestRegressor(n_estimators=500, min_samples_split=100)
+        clf = RandomForestRegressor(n_estimators=500)
         output_pred = cross_val_predict(clf, new_df, subject_key, cv=2)
         correlation_list.append(abs(spearmanr(subject_key, output_pred)[0]))
         mae_list.append(mean_absolute_error(subject_key, output_pred))
@@ -345,7 +345,7 @@ def run_seq_regressor(otu_df, subject_key):
 
 
 def run_regressor_mae_mse(otu_df, subject_key):
-    clf = RandomForestRegressor(n_estimators=500, min_samples_split=100)
+    clf = RandomForestRegressor(n_estimators=500)
     output_pred = cross_val_predict(clf, otu_df, subject_key, cv=2)
     mse_list = []
     rmse_list = []
@@ -526,10 +526,9 @@ def pipeline_seq_regressor_countries(config):
         top_otu_adh, corr_list, mae_list, num_features = run_seq_regressor(otu_df, adherence[country])
         plot_scatter(num_features, corr_list, 'Correlation coefficient', country + '_adh_corr', config.path_out)
         plot_scatter(num_features, mae_list, 'MAE', country + '_adh_mae', config.path_out)
+        save_list(config, top_otu_adh, country + '_adh')
 
         top_otu_age, corr_list, mae_list, num_features = run_seq_regressor(otu_df, age[country])
         plot_scatter(num_features, corr_list, 'Correlation coefficient', country + '_age_corr', config.path_out)
         plot_scatter(num_features, mae_list, 'MAE', country + '_age_mae', config.path_out)
-
-        save_list(config, top_otu_adh, country + '_adh')
         save_list(config, top_otu_age, country + '_age')

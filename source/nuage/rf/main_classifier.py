@@ -1,9 +1,16 @@
+import os
 from config.config import Config
-from rf.pipeline_classifier import pipeline_classifier
+from rf.pipeline_classifier import *
+from infrastructure.file_system import get_path
 
-data_file_path = 'D:/Aaron/Bio/NU-Age/Data/'
-figure_file_path = 'D:/Aaron/Bio/NU-Age/Figures/'
+path = get_path()
 
-config = Config(data_file_path, figure_file_path)
+data_file_path = path
+result_file_path = path + '/rf_classifier/countries'
 
-pipeline_classifier(config)
+if not os.path.isdir(result_file_path):
+    os.makedirs(result_file_path)
+
+config = Config(data_file_path, result_file_path)
+
+pipeline_classifier_countries(config)

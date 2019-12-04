@@ -165,8 +165,8 @@ def configure_dataframe(data, sub_list, var_list, subject_row_dict):
     df_array = np.zeros((len(sub_list), len(var_list)), dtype=np.float32)
 
     for sub_id, sub in enumerate(sub_list):
-        curr_otu_t0 = data[subject_row_dict[sub], :]
-        df_array[sub_id, :] = curr_otu_t0
+        curr_otu = data[subject_row_dict[sub], :]
+        df_array[sub_id, :] = curr_otu
     result_df = pd.DataFrame(df_array, sub_list, var_list)
 
     return result_df
@@ -178,5 +178,141 @@ def run_classifier(data, classes):
     clf = RandomForestClassifier(n_estimators=500)
     output = cross_validate(clf, data, y, cv=5, scoring='accuracy', return_estimator=True)
     accuracy = np.mean(output['test_score'])
-
     return accuracy
+
+
+def pipeline_classifier_countries(config):
+    subject_row_dict_T0 = config.otu_counts.subject_row_dict_T0
+    subject_row_dict_T1 = config.otu_counts.subject_row_dict_T1
+
+    common_otus = config.get_common_otus()
+    common_otu_t0, common_otu_t1, common_otu_col_dict = config.separate_common_otus()
+
+    config.separate_data('otu_counts', 'T0')
+    otu_t0 = config.curr_data
+    otu_t0_col_dict = config.curr_col_dict
+
+    config.separate_data('otu_counts', 'T1')
+    otu_t1 = config.curr_data
+    otu_t1_col_dict = config.curr_col_dict
+
+    common_subjects = config.get_common_subjects_with_adherence()
+    otu_counts_delta = config.get_otu_counts_delta(common_subjects)
+
+    countries = ['Italy', 'UK', 'Holland', 'Poland', 'France']
+
+    status_key = 'status'
+    country_key = 'country'
+    target_keys = [status_key, country_key]
+
+    metadata_t0, obs_dict_t0 = config.get_target_subject_dicts(list(subject_row_dict_T0.keys()), target_keys, 'T0')
+    metadata_t1, obs_dict_t1 = config.get_target_subject_dicts(list(subject_row_dict_T1.keys()), target_keys, 'T1')
+
+    subjects_t0_country = {key: [] for key in countries}
+    controls_t0_country = {key: [] for key in countries}
+    subjects_t1_country = {key: [] for key in countries}
+    controls_t1_country = {key: [] for key in countries}
+    subjects_common_country = {key: [] for key in countries}
+    controls_common_country = {key: [] for key in countries}
+
+    for subject in list(subject_row_dict_T0.keys()):
+        country = metadata_t0[subject][country_key]
+        if metadata_t0[subject][status_key] == 'Subject':
+            subjects_t0_country[country].append(subject)
+        else:
+            controls_t0_country[country].append(subject)
+
+    for subject in list(subject_row_dict_T1.keys()):
+        country = metadata_t1[subject][country_key]
+        if metadata_t1[subject][status_key] == 'Subject':
+            subjects_t1_country[country].append(subject)
+        else:
+            controls_t1_country[country].append(subject)
+
+    for subject in common_subjects:
+        country = metadata_t1[subject][country_key]
+        if metadata_t1[subject][status_key] == 'Subject':
+            subjects_common_country[country].append(subject)
+        else:
+            controls_common_country[country].append(subject)
+
+    result_filename = 'classification_country.txt'
+    f = open(config.path_out + '/' + result_filename, 'w')
+
+    for country in countries:
+        f.write(country + '\n')
+        print(country)
+
+        otu_t0_subject_df = configure_dataframe(otu_t0, subjects_t0_country[country],
+                                                list(otu_t0_col_dict.keys()), subject_row_dict_T0)
+        otu_t0_control_df = configure_dataframe(otu_t0, controls_t0_country[country],
+                                                list(otu_t0_col_dict.keys()), subject_row_dict_T0)
+        otu_t1_subject_df = configure_dataframe(otu_t1, subjects_t1_country[country],
+                                                list(otu_t1_col_dict.keys()), subject_row_dict_T1)
+        otu_t1_control_df = configure_dataframe(otu_t1, controls_t1_country[country],
+                                                list(otu_t1_col_dict.keys()), subject_row_dict_T1)
+
+        otu_t0_df = configure_dataframe(common_otu_t0,
+                                        subjects_common_country[country] + controls_common_country[country],
+                                        common_otus, subject_row_dict_T0)
+        otu_t1_df = configure_dataframe(common_otu_t1,
+                                        subjects_common_country[country] + controls_common_country[country],
+                                        common_otus, subject_row_dict_T1)
+
+        otu_subject_df = configure_dataframe(otu_counts_delta.data, subjects_common_country[country],
+                                             common_otus, otu_counts_delta.subject_row_dict)
+        otu_control_df = configure_dataframe(otu_counts_delta.data, controls_common_country[country],
+                                             common_otus, otu_counts_delta.subject_row_dict)
+
+        common_otu_t0_subject_df = configure_dataframe(common_otu_t0, subjects_t0_country[country],
+                                                       common_otus, subject_row_dict_T0)
+        common_otu_t0_control_df = configure_dataframe(common_otu_t0, controls_t0_country[country],
+                                                       common_otus, subject_row_dict_T0)
+        common_otu_t1_subject_df = configure_dataframe(common_otu_t1, subjects_t1_country[country],
+                                                       common_otus, subject_row_dict_T1)
+        common_otu_t1_control_df = configure_dataframe(common_otu_t1, controls_t1_country[country],
+                                                       common_otus, subject_row_dict_T1)
+
+        subj_control_t1_df = otu_t1_subject_df.append(otu_t1_control_df)
+        classes_subj_control_t1 = ['Subject', ] * len(subjects_t1_country[country]) + \
+                                  ['Control', ] * len(controls_t1_country[country])
+        accuracy = run_classifier(subj_control_t1_df, classes_subj_control_t1)
+        print('Accuracy Subject T1 vs Control T1: ' + str(accuracy))
+        f.write('Accuracy Subject T1 vs Control T1: ' + str(accuracy) + '\n')
+
+        subj_control_t0_df = otu_t0_subject_df.append(otu_t0_control_df)
+        classes_subj_control_t0 = ['Subject', ] * len(subjects_t0_country[country]) + \
+                                  ['Control', ] * len(controls_t0_country[country])
+        accuracy = run_classifier(subj_control_t0_df, classes_subj_control_t0)
+        print('Accuracy Subject T0 vs Control T0: ' + str(accuracy))
+        f.write('Accuracy Subject T0 vs Control T0: ' + str(accuracy) + '\n')
+
+        subj_t0_t1_df = common_otu_t0_subject_df.append(common_otu_t1_subject_df)
+        classes_subj_t0_t1 = ['T0', ] * len(subjects_t0_country[country]) + \
+                             ['T1', ] * len(subjects_t1_country[country])
+        accuracy = run_classifier(subj_t0_t1_df, classes_subj_t0_t1)
+        print('Accuracy Subject T0 vs Subject T1: ' + str(accuracy))
+        f.write('Accuracy Subject T0 vs Subject T1: ' + str(accuracy) + '\n')
+
+        control_t0_t1_df = common_otu_t0_control_df.append(common_otu_t1_control_df)
+        classes_control_t0_t1 = ['T0', ] * len(controls_t0_country[country]) + \
+                                ['T1', ] * len(controls_t1_country[country])
+        accuracy = run_classifier(control_t0_t1_df, classes_control_t0_t1)
+        print('Accuracy Control T0 vs Control T1: ' + str(accuracy))
+        f.write('Accuracy Control T0 vs Control T1: ' + str(accuracy) + '\n')
+
+        t0_t1_df = otu_t0_df.append(otu_t1_df)
+        classes_t0_t1 = ['T0', ] * len(subjects_common_country[country] + controls_common_country[country]) + \
+                        ['T1', ] * len(subjects_common_country[country] + controls_common_country[country])
+        accuracy = run_classifier(t0_t1_df, classes_t0_t1)
+        print('Accuracy T0 vs T1: ' + str(accuracy))
+        f.write('Accuracy T0 vs T1: ' + str(accuracy) + '\n')
+
+        subject_control_df = otu_subject_df.append(otu_control_df)
+        classes_subject_control = ['Subject', ] * len(subjects_common_country[country]) + \
+                                  ['Control', ] * len(controls_common_country[country])
+        accuracy = run_classifier(subject_control_df, classes_subject_control)
+        print('Accuracy Subject vs Control: ' + str(accuracy))
+        f.write('Accuracy Subject vs Control: ' + str(accuracy) + '\n')
+
+    f.close()

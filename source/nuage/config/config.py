@@ -187,7 +187,6 @@ class Config:
         self.common_otu_col_dict = common_otu_col_dict
         return common_otu_t0, common_otu_t1, common_otu_col_dict
 
-
     def get_common_otus(self):
         common_otus = []
         for key in self.otu_counts.otu_col_dict_T0:

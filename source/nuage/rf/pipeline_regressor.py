@@ -241,7 +241,7 @@ def pipeline_regressor(config):
     diet_negative_otus = [np.log(diet_negative_otus_subject[i] / diet_negative_otus_control[i]) for i in
                           range(0, len(diet_negative_otus_subject))]
 
-    plot_box(diet_positive_otus, 'DietPositive', diet_negative_otus, 'DietNegative', config.path_out)
+    plot_box([diet_positive_otus, diet_negative_otus], ['DietPositive', 'DietNegative'], config.path_out, 'diet_otus')
 
 
 def run_regressor(config, otu_df, adherence_dict, adherence_key, timeline):
@@ -288,7 +288,7 @@ def run_regressor(config, otu_df, adherence_dict, adherence_key, timeline):
         accuracy = np.mean(output['test_score'])
         accuracy_list.append(accuracy)
         num_features_list.append(features_list_len)
-    plot_scatter(num_features_list, accuracy_list, timeline, config.path_out)
+    plot_scatter(num_features_list, accuracy_list, 'neg_MAE', timeline, config.path_out)
 
     num_features = 0
     top_features = []
@@ -308,20 +308,65 @@ def run_regressor(config, otu_df, adherence_dict, adherence_key, timeline):
     return top_features, top_features_imp
 
 
-def run_rf_regressor(otu_df, subject_key):
+def run_seq_regressor(otu_df, subject_key):
+    clf = RandomForestRegressor(n_estimators=500, min_samples_split=100)
+    output = cross_validate(clf, otu_df, subject_key, cv=2, return_estimator=True)
+    features_dict = dict((key, []) for key in list(otu_df.columns.values))
+    for idx, estimator in enumerate(output['estimator']):
+        feature_importances = pd.DataFrame(estimator.feature_importances_,
+                                           index=list(otu_df.columns.values),
+                                           columns=['importance']).sort_values('importance', ascending=False)
+        features_names = list(feature_importances.index.values)
+        features_values = list(feature_importances.values)
+        for feature_id in range(0, len(features_names)):
+            features_dict[features_names[feature_id]].append(features_values[feature_id][0])
+
+    for key in features_dict.keys():
+        features_dict[key] = np.mean(features_dict[key])
+    features_dict = {k: v for k, v in sorted(features_dict.items(), reverse=True, key=lambda x: x[1])}
+    top_features = list(features_dict.keys())
+
+    correlation_list = []
+    num_features_list = []
+    for experiment_id in range(1, 201):
+        if experiment_id % 10 == 0:
+            print('Experiment #', str(experiment_id))
+        features_list_len = experiment_id
+        features_list = list(features_dict.keys())[0:features_list_len]
+        new_df = otu_df[features_list].copy()
+        clf = RandomForestRegressor(n_estimators=500, min_samples_split=100)
+        output_pred = cross_val_predict(clf, new_df, subject_key, cv=2)
+        correlation_list.append(abs(spearmanr(subject_key, output_pred)[0]))
+        num_features_list.append(features_list_len)
+
+    return top_features, correlation_list, num_features_list
+
+
+def run_regressor_mae_mse(otu_df, subject_key):
     clf = RandomForestRegressor(n_estimators=500, min_samples_split=100)
     output_pred = cross_val_predict(clf, otu_df, subject_key, cv=2)
     mse_list = []
+    rmse_list = []
     mae_list = []
     for i in range(0, len(subject_key)):
-        curr_mse = mean_squared_error(subject_key[i], output_pred[i])
-        curr_mae = mean_absolute_error(subject_key[i], output_pred[i])
+        curr_mse = mean_squared_error([subject_key[i]], [output_pred[i]], squared=True)
+        curr_rmse = mean_squared_error([subject_key[i]], [output_pred[i]], squared=False)
+        curr_mae = mean_absolute_error([subject_key[i]], [output_pred[i]])
+
         mse_list.append(curr_mse)
-        mse_list.append(curr_mae)
-    return mse_list, mae_list
+        rmse_list.append(curr_rmse)
+        mae_list.append(curr_mae)
+    return mse_list, rmse_list, mae_list
 
 
-def pipeline_regressor_new(config):
+def save_list(config, data, suffix):
+    f = open(config.path_out + '/' + suffix + '_otus.txt', 'w')
+    for item in data:
+        f.write(item + '\n')
+    f.close()
+
+
+def pipeline_regressor_countries(config):
     subject_row_dict_T0 = config.otu_counts.subject_row_dict_T0
     subject_row_dict_T1 = config.otu_counts.subject_row_dict_T1
 
@@ -351,7 +396,7 @@ def pipeline_regressor_new(config):
 
     otu_country_data = {}
     for country in countries:
-        otu_country_data[country] = np.zeros((len(subjects_country[country]), len(common_otus)), dtype=np.float32)
+        otu_country_data[country] = np.zeros((len(subjects_country[country]) * 2, len(common_otus)), dtype=np.float32)
 
     subjects_names = {key: [] for key in countries}
     adherence = {key: [] for key in countries}
@@ -377,12 +422,110 @@ def pipeline_regressor_new(config):
             subjects_names[country].append(sub + '_T0')
             subjects_names[country].append(sub + '_T1')
 
-            otu_country_data[country][sub_id, :] = curr_otu_t0 + curr_otu_t1
+            otu_country_data[country][sub_id * 2, :] = curr_otu_t0
+            otu_country_data[country][sub_id * 2 + 1, :] = curr_otu_t1
 
+    mse_adherence = {key: [] for key in countries}
+    mae_adherence = {key: [] for key in countries}
+    rmse_adherence = {key: [] for key in countries}
+
+    mse_age = {key: [] for key in countries}
+    rmse_age = {key: [] for key in countries}
+    mae_age = {key: [] for key in countries}
     for country in countries:
-        otu_df = pd.DataFrame(otu_country_data[country], 
+        otu_df = pd.DataFrame(otu_country_data[country],
                               subjects_names[country],
                               list(config.common_otu_col_dict.keys()))
 
-        mse_adh, mae_adh = run_rf_regressor(otu_df, adherence[country])
-        mse_age, mae_age = run_rf_regressor(otu_df, age[country])
+        curr_mse_adh, curr_rmse_adh, curr_mae_adh = run_regressor_mae_mse(otu_df, adherence[country])
+        curr_mse_age, curr_rmse_age, curr_mae_age = run_regressor_mae_mse(otu_df, age[country])
+
+        mse_adherence[country] = curr_mse_adh
+        mae_adherence[country] = curr_mae_adh
+        rmse_adherence[country] = curr_rmse_adh
+
+        mse_age[country] = curr_mse_age
+        mae_age[country] = curr_mae_age
+        rmse_age[country] = curr_rmse_age
+
+    plot_box(mse_adherence, list(mse_adherence.keys()), config.path_out, 'MSE_adh')
+    plot_box(rmse_adherence, list(rmse_adherence.keys()), config.path_out, 'RMSE_adh')
+    plot_box(mae_adherence, list(mae_adherence.keys()), config.path_out, 'MAE_adh')
+
+    plot_box(mse_age, list(mse_age.keys()), config.path_out, 'MSE_age')
+    plot_box(rmse_age, list(rmse_age.keys()), config.path_out, 'RMSE_age')
+    plot_box(mae_age, list(mae_age.keys()), config.path_out, 'MAE_age')
+
+
+def pipeline_seq_regressor_countries(config):
+    subject_row_dict_T0 = config.otu_counts.subject_row_dict_T0
+    subject_row_dict_T1 = config.otu_counts.subject_row_dict_T1
+
+    common_otus = config.get_common_otus()
+
+    common_otu_t0, common_otu_t1, common_otu_col_dict = config.separate_common_otus()
+
+    countries = ['Italy', 'UK', 'Holland', 'Poland', 'France']
+
+    adherence_key = 'compliance160'
+    age_key = 'age'
+    country_key = 'country'
+
+    target_keys = [adherence_key, age_key, country_key]
+
+    common_subjects = config.get_common_subjects_with_adherence()
+    metadata_t0, obs_dict_t0 = config.get_target_subject_dicts(common_subjects, target_keys, 'T0')
+    metadata_t1, obs_dict_t1 = config.get_target_subject_dicts(common_subjects, target_keys, 'T1')
+
+    subjects_country = {}
+    for subject in common_subjects:
+        country = metadata_t0[subject][country_key]
+        if country in subjects_country:
+            subjects_country[country].append(subject)
+        else:
+            subjects_country[country] = [subject]
+
+    otu_country_data = {}
+    for country in countries:
+        otu_country_data[country] = np.zeros((len(subjects_country[country]) * 2, len(common_otus)), dtype=np.float32)
+
+    subjects_names = {key: [] for key in countries}
+    adherence = {key: [] for key in countries}
+    age = {key: [] for key in countries}
+
+    for country in countries:
+        for sub_id, sub in enumerate(subjects_country[country]):
+            curr_adherence_t0 = metadata_t0[sub][adherence_key]
+            curr_adherence_t1 = metadata_t1[sub][adherence_key]
+
+            adherence[country].append(curr_adherence_t0)
+            adherence[country].append(curr_adherence_t1)
+
+            curr_age_t0 = metadata_t0[sub][age_key]
+            curr_age_t1 = metadata_t1[sub][age_key]
+
+            age[country].append(curr_age_t0)
+            age[country].append(curr_age_t1)
+
+            curr_otu_t0 = common_otu_t0[subject_row_dict_T0[sub], :]
+            curr_otu_t1 = common_otu_t1[subject_row_dict_T1[sub], :]
+
+            subjects_names[country].append(sub + '_T0')
+            subjects_names[country].append(sub + '_T1')
+
+            otu_country_data[country][sub_id * 2, :] = curr_otu_t0
+            otu_country_data[country][sub_id * 2 + 1, :] = curr_otu_t1
+
+    for country in countries:
+        otu_df = pd.DataFrame(otu_country_data[country],
+                              subjects_names[country],
+                              list(config.common_otu_col_dict.keys()))
+
+        top_otu_adh, corr_list, num_features = run_seq_regressor(otu_df, adherence[country])
+        plot_scatter(num_features, corr_list, 'Correlation coefficient', country, config.path_out)
+
+        top_otu_age, corr_list, num_features = run_seq_regressor(otu_df, age[country])
+        plot_scatter(num_features, corr_list, 'Correlation coefficient', country, config.path_out)
+
+        save_list(config, top_otu_adh, country + '_adh')
+        save_list(config, top_otu_age, country + '_age')

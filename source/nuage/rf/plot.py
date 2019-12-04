@@ -2,7 +2,7 @@ import plotly
 import plotly.graph_objs as go
 
 
-def plot_scatter(x, y, title, figure_file_path):
+def plot_scatter(x, y, title, suffix, figure_file_path):
     trace = go.Scatter(
         x=x,
         y=y,
@@ -39,7 +39,7 @@ def plot_scatter(x, y, title, figure_file_path):
         ),
         yaxis=go.layout.YAxis(
             title=go.layout.yaxis.Title(
-                text="MAE",
+                text=title,
                 font=dict(
                     family="Courier New, monospace",
                     size=18,
@@ -51,9 +51,10 @@ def plot_scatter(x, y, title, figure_file_path):
 
     fig = go.Figure(data=trace, layout=layout)
 
-    plotly.offline.plot(fig, filename=figure_file_path + 'scatter_' + title + '.html', auto_open=False, show_link=True)
-    plotly.io.write_image(fig, figure_file_path + 'scatter_' + title + '.png')
-    plotly.io.write_image(fig, figure_file_path + 'scatter_' + title + '.pdf')
+    plotly.offline.plot(fig, filename=figure_file_path + '/scatter_' + suffix + '.html', auto_open=False, show_link=True)
+    # plotly.io.write_image(fig, figure_file_path + '/scatter_' + suffix + '.png')
+    # plotly.io.write_image(fig, figure_file_path + '/scatter_' + suffix + '.pdf')
+
 
 def plot_random_forest(x, y, title, is_equal_range, figure_file_path):
     if is_equal_range:
@@ -117,6 +118,7 @@ def plot_random_forest(x, y, title, is_equal_range, figure_file_path):
     plotly.io.write_image(fig, figure_file_path + 'rf_' + title + '.png')
     plotly.io.write_image(fig, figure_file_path + 'rf_' + title + '.pdf')
 
+
 def plot_heatmap(data, names, figure_file_path):
     trace = go.Heatmap(
         z=[data],
@@ -127,6 +129,7 @@ def plot_heatmap(data, names, figure_file_path):
     plotly.offline.plot(fig, filename=figure_file_path + 'heatmap.html', auto_open=False, show_link=True)
     plotly.io.write_image(fig, figure_file_path + 'heatmap.png')
     plotly.io.write_image(fig, figure_file_path + 'heatmap.pdf')
+
 
 def plot_hist(data, names, colors, suffix, figure_file_path):
     fig = go.Figure(go.Bar(
@@ -145,11 +148,14 @@ def plot_hist(data, names, colors, suffix, figure_file_path):
     plotly.io.write_image(fig, figure_file_path + suffix + '_hist.png')
     plotly.io.write_image(fig, figure_file_path + suffix + '_hist.pdf')
 
-def plot_box(data_1, name_1, data_2, name_2, figure_file_path):
-    fig = go.Figure()
-    fig.add_trace(go.Box(x=data_1, name=name_1))
-    fig.add_trace(go.Box(x=data_2, name=name_2))
 
-    plotly.offline.plot(fig, filename=figure_file_path + 'boxplot.html', auto_open=False, show_link=True)
-    plotly.io.write_image(fig, figure_file_path + 'boxplot.png')
-    plotly.io.write_image(fig, figure_file_path + 'boxplot.pdf')
+def plot_box(data_dict, names, figure_file_path, title):
+    fig = go.Figure()
+    for name in names:
+        data = data_dict[name]
+        fig.add_trace(go.Box(x=data, name=name))
+
+    plotly.offline.plot(fig, filename=figure_file_path + '/' + title + '_boxplot.html', auto_open=False, show_link=True)
+    # plotly.io.write_image(fig, figure_file_path + 'boxplot.png')
+    # plotly.io.write_image(fig, figure_file_path + 'boxplot.pdf')
+

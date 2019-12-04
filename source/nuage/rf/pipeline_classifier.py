@@ -176,7 +176,7 @@ def run_classifier(data, classes):
     factor = pd.factorize(classes)
     y = factor[0]
     clf = RandomForestClassifier(n_estimators=500)
-    output = cross_validate(clf, data, y, cv=5, scoring='accuracy', return_estimator=True)
+    output = cross_validate(clf, data, y, cv=5, scoring='accuracy')
     accuracy = np.mean(output['test_score'])
     return accuracy
 
@@ -210,11 +210,6 @@ def pipeline_classifier_countries(config):
 
     subjects_t0_country = {key: [] for key in countries}
     controls_t0_country = {key: [] for key in countries}
-    subjects_t1_country = {key: [] for key in countries}
-    controls_t1_country = {key: [] for key in countries}
-    subjects_common_country = {key: [] for key in countries}
-    controls_common_country = {key: [] for key in countries}
-
     for subject in list(subject_row_dict_T0.keys()):
         country = metadata_t0[subject][country_key]
         if metadata_t0[subject][status_key] == 'Subject':
@@ -222,6 +217,8 @@ def pipeline_classifier_countries(config):
         else:
             controls_t0_country[country].append(subject)
 
+    subjects_t1_country = {key: [] for key in countries}
+    controls_t1_country = {key: [] for key in countries}
     for subject in list(subject_row_dict_T1.keys()):
         country = metadata_t1[subject][country_key]
         if metadata_t1[subject][status_key] == 'Subject':
@@ -229,6 +226,8 @@ def pipeline_classifier_countries(config):
         else:
             controls_t1_country[country].append(subject)
 
+    subjects_common_country = {key: [] for key in countries}
+    controls_common_country = {key: [] for key in countries}
     for subject in common_subjects:
         country = metadata_t1[subject][country_key]
         if metadata_t1[subject][status_key] == 'Subject':

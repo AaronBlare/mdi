@@ -1,3 +1,18 @@
+from io import StringIO
+from skbio import TreeNode
+from skbio.diversity.beta import unweighted_unifrac
+
+tree = TreeNode.read(StringIO('(((((OTU1:0.5,OTU2:0.5):0.5,OTU3:1.0):1.0):0.0,'
+                              '(OTU4:0.75,(OTU5:0.5,((OTU6:0.33,OTU7:0.62):0.5'
+                              ',OTU8:0.5):0.5):0.5):1.25):0.0)root;'))
+
+u_counts = [1, 0, 0, 4, 1, 2, 3, 0]
+v_counts = [0, 1, 1, 6, 0, 1, 0, 0]
+otu_ids = ['OTU1', 'OTU2', 'OTU3', 'OTU4', 'OTU5', 'OTU6', 'OTU7', 'OTU8']
+uu = unweighted_unifrac(u_counts, v_counts, otu_ids, tree)
+print(round(uu, 2))
+
+
 from ete3 import PhyloTree
 
 t = PhyloTree('((H,I), A, (B,(C,D)))root;', format=1)

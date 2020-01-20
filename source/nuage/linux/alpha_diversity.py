@@ -2,6 +2,7 @@ import os
 from tqdm import tqdm
 import numpy as np
 import skbio
+import pandas as pd
 
 data_file_path = '/home/qiime2/Desktop/shared/nuage/'
 result_file_path = '/home/qiime2/Desktop/shared/nuage/linux/'
@@ -19,16 +20,20 @@ subj_id = 0
 time_id = 1
 type_id = 2
 
-times = []
+subjects_T0 = []
+subjects_T1 = []
 for line in tqdm(f):
     line_list = line.split('\t')
     line_list[-1] = line_list[-1].rstrip()
     time = line_list[time_id]
-    times.append(time)
+    if time == 'T0':
+        subjects_T0.append(line_list[subj_id])
+    elif time == 'T1':
+        subjects_T1.append(line_list[subj_id])
 f.close()
 
-number_of_T0 = int(times.count('T0') / 3)
-otu_data_T0 = np.zeros((number_of_T0, num_otus), dtype=np.float32)
+common_subjects = list(set(subjects_T0).intersection(set(subjects_T1)))
+otu_data_T0 = np.zeros((len(common_subjects), num_otus), dtype=np.float32)
 
 subject_row_dict_T0 = {}
 curr_row_id_T0 = 0
@@ -94,7 +99,7 @@ for subject_id in range(0, len(list(subject_row_dict.keys()))):
 subject_diversity_dict = {key: {'Shannon': -1.0, 'Fisher': -1.0, 'Number': -1.0, 'Simpson': -1.0, 'Chao1': -1.0} for key
                           in subject_row_dict}
 for subject in subject_diversity_dict:
-    shannon_diversity = skbio.diversity.alpha.shannon(subject_group_dict[subject])
+    shannon_diversity = skbio.diversity.alpha.shannon(subject_group_dict[subject], base=np.e)
     fisher_diversity = skbio.diversity.alpha.fisher_alpha(subject_group_dict[subject])
     number_diversity = np.sum(subject_group_dict[subject])
     simpson_diversity = skbio.diversity.alpha.simpson(subject_group_dict[subject])
@@ -104,3 +109,9 @@ for subject in subject_diversity_dict:
     subject_diversity_dict[subject]['Number'] = number_diversity
     subject_diversity_dict[subject]['Simpson'] = simpson_diversity
     subject_diversity_dict[subject]['Chao1'] = chao1_diversity
+
+df = pd.DataFrame.from_dict(data=subject_diversity_dict)
+df_transposed = df.T
+df_transposed.index.name = 'ID'
+df_transposed.reset_index(inplace=True)
+df_transposed.to_excel(result_file_path + 'alpha_diversity.xlsx', header=True)

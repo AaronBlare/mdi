@@ -1,12 +1,66 @@
 import os
+from tqdm import tqdm
 import numpy as np
-from config.config import Config
+import skbio
 
 data_file_path = '/home/qiime2/Desktop/shared/nuage/'
 result_file_path = '/home/qiime2/Desktop/shared/nuage/linux/'
 if not os.path.isdir(result_file_path):
     os.makedirs(result_file_path)
-config = Config(data_file_path, result_file_path)
+
+f = open(data_file_path + 'OTUcounts.tsv')
+key_line = f.readline()
+keys = key_line.split('\t')
+keys[-1] = keys[-1].rstrip()
+keys = keys[3::]
+num_otus = len(keys)
+
+subj_id = 0
+time_id = 1
+type_id = 2
+
+times = []
+for line in tqdm(f):
+    line_list = line.split('\t')
+    line_list[-1] = line_list[-1].rstrip()
+    time = line_list[time_id]
+    times.append(time)
+f.close()
+
+number_of_T0 = int(times.count('T0') / 3)
+raw_T0 = np.zeros((number_of_T0, num_otus), dtype=np.float32)
+
+subject_row_dict_T0 = {}
+curr_row_id_T0 = 0
+subjects = []
+
+f = open(data_file_path + 'OTUcounts.tsv')
+f.readline()
+for line in tqdm(f):
+    line_list = line.split('\t')
+    line_list[-1] = line_list[-1].rstrip()
+
+    subject = line_list[subj_id]
+    subjects.append(subject)
+
+    time = line_list[time_id]
+    type = line_list[type_id]
+
+    otus = line_list[3::]
+    otus = np.float32(otus)
+
+    if type == 'RawCount' and time == 'T0':
+        raw_T0[curr_row_id_T0] = otus
+        subject_row_dict_T0[subject] = curr_row_id_T0
+        curr_row_id_T0 += 1
+f.close()
+
+otu_col_dict_T0 = {}
+curr_T0_id = 0
+
+for key_id in range(0, len(keys)):
+    otu_col_dict_T0[keys[key_id]] = curr_T0_id
+    curr_T0_id += 1
 
 groups_file_name = 'RDP_classified_TaxaTable.tsv'
 f = open(data_file_path + groups_file_name)
@@ -16,15 +70,15 @@ otu_group_names = []
 for line in f:
     otu_data = line.split('\t')
     otu_name = otu_data[0]
-    otu_group = otu_data[-2]
+    otu_group = otu_data[-4]
     if otu_group not in otu_group_names:
         otu_group_names.append(otu_group)
     otu_group_dict[otu_name] = otu_group
 f.close()
 
-otu_col_dict = config.otu_counts.otu_col_dict_T0
-subject_row_dict = config.otu_counts.subject_row_dict_T0
-otu_counts = config.otu_counts.raw_T0
+otu_col_dict = otu_col_dict_T0
+subject_row_dict = subject_row_dict_T0
+otu_counts = raw_T0
 
 subject_group_dict = {key: np.zeros(len(otu_group_names), dtype=int) for key in subject_row_dict}
 for subject_id in range(0, len(list(subject_row_dict.keys()))):
@@ -36,3 +90,17 @@ for subject_id in range(0, len(list(subject_row_dict.keys()))):
             curr_otu_group = otu_group_dict[curr_otu_name]
             curr_index = otu_group_names.index(curr_otu_group)
             subject_group_dict[curr_subject][curr_index] += 1
+
+subject_diversity_dict = {key: {'Shannon': -1.0, 'Fisher': -1.0, 'Number': -1.0, 'Simpson': -1.0, 'Chao1': -1.0} for key
+                          in subject_row_dict}
+for subject in subject_diversity_dict:
+    shannon_diversity = skbio.diversity.alpha.shannon(subject_group_dict[subject])
+    fisher_diversity = skbio.diversity.alpha.fisher_alpha(subject_group_dict[subject])
+    number_diversity = np.sum(subject_group_dict[subject])
+    simpson_diversity = skbio.diversity.alpha.simpson(subject_group_dict[subject])
+    chao1_diversity = skbio.diversity.alpha.chao1(subject_group_dict[subject])
+    subject_diversity_dict[subject]['Shannon'] = shannon_diversity
+    subject_diversity_dict[subject]['Fisher'] = fisher_diversity
+    subject_diversity_dict[subject]['Number'] = number_diversity
+    subject_diversity_dict[subject]['Simpson'] = simpson_diversity
+    subject_diversity_dict[subject]['Chao1'] = chao1_diversity

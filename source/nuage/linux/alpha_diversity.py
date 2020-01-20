@@ -37,7 +37,6 @@ otu_data_T0 = np.zeros((len(common_subjects), num_otus), dtype=np.float32)
 
 subject_row_dict_T0 = {}
 curr_row_id_T0 = 0
-subjects = []
 
 f = open(data_file_path + 'OTUcounts.tsv')
 f.readline()
@@ -46,18 +45,17 @@ for line in tqdm(f):
     line_list[-1] = line_list[-1].rstrip()
 
     subject = line_list[subj_id]
-    subjects.append(subject)
+    if subject in common_subjects:
+        time = line_list[time_id]
+        type = line_list[type_id]
 
-    time = line_list[time_id]
-    type = line_list[type_id]
+        otus = line_list[3::]
+        otus = np.float32(otus)
 
-    otus = line_list[3::]
-    otus = np.float32(otus)
-
-    if type == 'RarifiedCount' and time == 'T0':
-        otu_data_T0[curr_row_id_T0] = otus
-        subject_row_dict_T0[subject] = curr_row_id_T0
-        curr_row_id_T0 += 1
+        if type == 'RarifiedCount' and time == 'T0':
+            otu_data_T0[curr_row_id_T0] = otus
+            subject_row_dict_T0[subject] = curr_row_id_T0
+            curr_row_id_T0 += 1
 f.close()
 
 otu_col_dict_T0 = {}

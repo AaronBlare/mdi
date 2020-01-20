@@ -28,7 +28,7 @@ for line in tqdm(f):
 f.close()
 
 number_of_T0 = int(times.count('T0') / 3)
-raw_T0 = np.zeros((number_of_T0, num_otus), dtype=np.float32)
+otu_data_T0 = np.zeros((number_of_T0, num_otus), dtype=np.float32)
 
 subject_row_dict_T0 = {}
 curr_row_id_T0 = 0
@@ -49,8 +49,8 @@ for line in tqdm(f):
     otus = line_list[3::]
     otus = np.float32(otus)
 
-    if type == 'RawCount' and time == 'T0':
-        raw_T0[curr_row_id_T0] = otus
+    if type == 'RarifiedCount' and time == 'T0':
+        otu_data_T0[curr_row_id_T0] = otus
         subject_row_dict_T0[subject] = curr_row_id_T0
         curr_row_id_T0 += 1
 f.close()
@@ -70,7 +70,7 @@ otu_group_names = []
 for line in f:
     otu_data = line.split('\t')
     otu_name = otu_data[0]
-    otu_group = otu_data[-4]
+    otu_group = otu_data[-2]
     if otu_group not in otu_group_names:
         otu_group_names.append(otu_group)
     otu_group_dict[otu_name] = otu_group
@@ -78,7 +78,7 @@ f.close()
 
 otu_col_dict = otu_col_dict_T0
 subject_row_dict = subject_row_dict_T0
-otu_counts = raw_T0
+otu_counts = otu_data_T0
 
 subject_group_dict = {key: np.zeros(len(otu_group_names), dtype=int) for key in subject_row_dict}
 for subject_id in range(0, len(list(subject_row_dict.keys()))):

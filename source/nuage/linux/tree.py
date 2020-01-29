@@ -47,7 +47,11 @@ with open('/home/qiime2/Desktop/shared/nuage/OTU_classification.csv', mode='r', 
     reader = csv.reader(f)
     data = list(reader)
 
+for row in data:
+    row.insert(0, 'root')
+
 result = csv_to_weightless_newick(data)
+result += ';'
 result_file = open('/home/qiime2/Desktop/shared/nuage/linux/OTU_newick.txt', 'w')
 result_file.write(result)
 result_file.close()

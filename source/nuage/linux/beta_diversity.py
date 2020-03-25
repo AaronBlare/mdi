@@ -2,8 +2,9 @@ import os
 from tqdm import tqdm
 import numpy as np
 import skbio
-from skbio import TreeNode
-from io import StringIO
+from skbio import read
+from skbio.tree import TreeNode
+from skbio.stats.ordination import pcoa
 
 
 data_file_path = '/home/qiime2/Desktop/shared/nuage/'
@@ -34,7 +35,17 @@ for line in tqdm(f):
         subjects_T1.append(line_list[subj_id])
 f.close()
 
-common_subjects = list(set(subjects_T0).intersection(set(subjects_T1)))
+f = open(data_file_path + 'Vat_SatT0.csv')
+key_line = f.readline()
+subjects = []
+for line in tqdm(f):
+    line_list = line.split(',')
+    if len(line_list) > 1:
+        subjects.append(line_list[1])
+
+t0_t1_subjects = list(set(subjects_T0).intersection(set(subjects_T1)))
+common_subjects = list(set(t0_t1_subjects).intersection(set(subjects)))
+common_subjects.sort()
 otu_data_T0 = np.zeros((len(common_subjects), num_otus), dtype=np.float32)
 
 subject_row_dict_T0 = {}
@@ -67,14 +78,16 @@ for key_id in range(0, len(keys)):
     otu_col_dict_T0[keys[key_id]] = curr_T0_id
     curr_T0_id += 1
 
-result_file = open('/home/qiime2/Desktop/shared/nuage/linux/OTU_newick.txt', 'r')
-tree_from_file = result_file.readline().rstrip()
-result_file.close()
-
-tree = TreeNode.read(StringIO(tree_from_file))
+filename = result_file_path + 'tree.nwk'
+tree = read(filename, format="newick", into=TreeNode).root_at_midpoint()
 
 beta_diversity = skbio.diversity.beta_diversity(metric='unweighted_unifrac',
                                                 counts=otu_data_T0,
                                                 ids=list(subject_row_dict_T0.keys()),
                                                 otu_ids=list(otu_col_dict_T0.keys()),
                                                 tree=tree)
+
+pcoa_results = pcoa(beta_diversity)
+fig = pcoa_results.plot()
+fig.show()
+olo = 0

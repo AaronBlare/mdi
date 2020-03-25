@@ -1,5 +1,5 @@
-data_file_path = '/home/qiime2/Desktop/shared/nuage/'
-file_name = 'tree.txt'
+data_file_path = '/home/qiime2/Desktop/shared/nuage/linux/'
+file_name = 'tree.nwk'
 
 f = open(data_file_path + file_name, 'r+')
 line = f.readline()
@@ -13,7 +13,7 @@ for char in line:
         if len(curr_otu) == 0:
             tree += char
         elif len(curr_otu.split('_')) == 3:
-            tree += 'OTU_' + curr_otu.split('_')[0] + char
+            tree += '\'OTU_' + curr_otu.split('_')[0] + '\'' + char
             curr_otu = ''
         else:
             tree += curr_otu + char

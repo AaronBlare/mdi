@@ -67,7 +67,7 @@ for line in tqdm(f):
         otus = line_list[3::]
         otus = np.float32(otus)
 
-        if type == 'RawCount' and time == 'T0':
+        if type == 'RarifiedCount' and time == 'T0':
             otu_data_T0[curr_row_id_T0] = otus
             subject_row_dict_T0[subject] = curr_row_id_T0
             curr_row_id_T0 += 1
@@ -91,7 +91,7 @@ for key_id in range(0, len(keys)):
 data_T0 = np.delete(otu_data_T0, cols_to_del_T0, axis=1)
 
 filename = result_file_path + 'qiime/tree.nwk'
-tree = read(filename, format="newick", into=TreeNode).root_at_midpoint()
+tree = read(filename, format="newick", into=TreeNode)
 
 # dists = np.zeros((len(common_subjects), len(common_subjects)))
 # for i in tqdm(range(0, len(common_subjects))):

@@ -1,5 +1,5 @@
 data_file_path = '/home/qiime2/Desktop/shared/nuage/linux/'
-file_name = 'tree.nwk'
+file_name = 'tree_mafft.nwk'
 
 f = open(data_file_path + file_name, 'r+')
 line = f.readline()
@@ -21,6 +21,6 @@ for char in line:
     else:
         curr_otu += char
 
-f = open(data_file_path + 'otu_tree.txt', 'w')
+f = open(data_file_path + 'tree_mafft.nwk', 'w')
 f.write(tree + '\r\n')
 f.close()

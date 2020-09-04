@@ -7,6 +7,7 @@ class DataPath(Enum):
     local_2 = 'E:/YandexDisk/Work/nuage'
     local_3 = 'C:/Users/User/YandexDisk/nuage'
     local_4 = 'D:/Alena/YandexDisk/nuage'
+    local_5 = 'E:/YandexDisk/nuage/nuage'
 
 
 def get_path():
@@ -19,6 +20,8 @@ def get_path():
         path = DataPath.local_3.value
     elif host_name == 'Eon':
         path = DataPath.local_4.value
+    elif host_name == 'DESKTOP-7H2CNDR':
+        path = DataPath.local_5.value
     else:
         raise ValueError("Unsupported host_name: " + host_name)
 

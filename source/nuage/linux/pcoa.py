@@ -6,6 +6,7 @@ from skbio import read
 from skbio.tree import TreeNode
 from skbio.stats.ordination import pcoa
 from linux.plot_pcoa import pcoa_plot
+from skbio.stats.distance import DistanceMatrix
 
 
 data_file_path = '/home/qiime2/Desktop/shared/nuage/linux/qiime/'
@@ -13,7 +14,7 @@ result_file_path = '/home/qiime2/Desktop/shared/nuage/linux/'
 if not os.path.isdir(result_file_path):
     os.makedirs(result_file_path)
 
-f = open(data_file_path + 'OTUcounts.tsv')
+f = open(data_file_path + 'OTU.tsv')
 key_line = f.readline()
 keys = key_line.split('\t')
 keys[-1] = keys[-1].rstrip()
@@ -34,7 +35,7 @@ subject_row_dict_T0 = {}
 curr_row_id_T0 = 0
 num_T0 = 0
 
-f = open(data_file_path + 'OTUcounts.tsv')
+f = open(data_file_path + 'OTU.tsv')
 f.readline()
 for line in tqdm(f):
     line_list = line.split('\t')
@@ -67,10 +68,15 @@ data_T0 = np.delete(otu_data_T0, cols_to_del_T0, axis=1)
 filename = result_file_path + 'tree.nwk'
 tree = read(filename, format="newick", into=TreeNode)
 
-dist_matrix = skbio.diversity.beta_diversity(metric='unweighted_unifrac',
+# filename = data_file_path + 'dist_mafft.tsv'
+# dist_mat = np.genfromtxt(fname=filename)
+# dist_matrix = DistanceMatrix(dist_mat)
+
+dist_matrix = skbio.diversity.beta_diversity(metric='weighted_unifrac',
                                              counts=data_T0,
                                              ids=list(subject_row_dict_T0.keys()),
                                              otu_ids=list(otu_col_dict_T0.keys()),
                                              tree=tree)
+
 pcoa_results = pcoa(dist_matrix)
 pcoa_plot(result_file_path + 'fig', pcoa_results, subjects)

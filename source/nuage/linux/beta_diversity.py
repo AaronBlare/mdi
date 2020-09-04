@@ -90,32 +90,33 @@ for key_id in range(0, len(keys)):
 
 data_T0 = np.delete(otu_data_T0, cols_to_del_T0, axis=1)
 
-filename = result_file_path + 'qiime/tree.nwk'
+filename = result_file_path + 'qiime/tree_qiime.nwk'
 tree = read(filename, format="newick", into=TreeNode)
 
-# dists = np.zeros((len(common_subjects), len(common_subjects)))
-# for i in tqdm(range(0, len(common_subjects))):
-#    for j in range(0, len(common_subjects)):
-#        if i >= j:
-#            continue
-#        else:
-#            index_1 = subject_row_dict_T0[common_subjects[i]]
-#            counts_1 = data_T0[index_1, :]
-#            index_2 = subject_row_dict_T0[common_subjects[j]]
-#            counts_2 = data_T0[index_2, :]
-#            curr_dist = skbio.diversity.beta.unweighted_unifrac(v_counts=counts_1,
-#                                                                u_counts=counts_2,
-#                                                               otu_ids=list(otu_col_dict_T0.keys()),
-#                                                                tree=tree,
-#                                                                validate=True)
-#            dists[i, j] = curr_dist
-#           dists[j, i] = curr_dist
-#
-# dist_matrix = DistanceMatrix(dists)
-dist_matrix = skbio.diversity.beta_diversity(metric='unweighted_unifrac',
-                                             counts=data_T0,
-                                             ids=list(subject_row_dict_T0.keys()),
-                                             otu_ids=list(otu_col_dict_T0.keys()),
-                                             tree=tree)
+dists = np.zeros((len(common_subjects), len(common_subjects)))
+for i in tqdm(range(0, len(common_subjects))):
+    for j in range(0, len(common_subjects)):
+        if i >= j:
+            continue
+        else:
+            index_1 = subject_row_dict_T0[common_subjects[i]]
+            counts_1 = data_T0[index_1, :]
+            index_2 = subject_row_dict_T0[common_subjects[j]]
+            counts_2 = data_T0[index_2, :]
+            curr_dist = skbio.diversity.beta.weighted_unifrac(v_counts=counts_1,
+                                                              u_counts=counts_2,
+                                                              otu_ids=list(otu_col_dict_T0.keys()),
+                                                              tree=tree,
+                                                              normalized=False,
+                                                              validate=True)
+            dists[i, j] = curr_dist
+            dists[j, i] = curr_dist
+
+dist_matrix = DistanceMatrix(dists)
+# dist_matrix = skbio.diversity.beta_diversity(metric='unweighted_unifrac',
+#                                              counts=data_T0,
+#                                              ids=list(subject_row_dict_T0.keys()),
+#                                              otu_ids=list(otu_col_dict_T0.keys()),
+#                                              tree=tree)
 pcoa_results = pcoa(dist_matrix)
-pcoa_plot(result_file_path + 'fig', pcoa_results, common_subjects)
+pcoa_plot(result_file_path + 'fig/mafft_tree', pcoa_results, common_subjects)
